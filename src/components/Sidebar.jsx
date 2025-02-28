@@ -13,24 +13,24 @@ import {
 import { Link } from "react-router-dom"
 
 const SIDEBAR_ITEMS = [
-  { name: "Overview", icon: BarChart2, color: "text-blue-400", href: "/" },
-  { name: "Species", icon: Sprout, color: "text-green-400", href: "/species" },
-  { name: "Location", icon: MapPin, color: "text-teal-400", href: "/location" },
+  { name: "General", icon: BarChart2, color: "text-blue-400", href: "/" },
+  { name: "Especies", icon: Sprout, color: "text-green-400", href: "/species" },
+  { name: "Lugar", icon: MapPin, color: "text-teal-400", href: "/location" },
   { name: "Blog", icon: NotebookPen, color: "text-purple-400", href: "/blog" },
   {
-    name: "Soil Structure",
+    name: "Estructura del Suelo",
     icon: MountainSnow,
     color: "text-yellow-400",
     href: "/soil-structure",
   },
   {
-    name: "Weather",
+    name: "Clima",
     icon: CloudRain,
     color: "text-blue-300",
     href: "/weather",
   },
   {
-    name: "Admin Info",
+    name: "Info Admin",
     icon: User,
     color: "text-red-400",
     href: "/admin-info",

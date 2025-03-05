@@ -3,6 +3,8 @@ import { Sprout, NotebookPen, MountainSnow, CloudRain } from "lucide-react"
 
 import Header from "@/components/common/Header"
 import StatCard from "@/components/common/StatCard"
+import SpeciesOverviewChart from "@/components/overview/SpeciesOverviewChart"
+import BasicInfo from "@/components/overview/BasicInfo"
 
 const OverviewPage = () => {
   return (
@@ -41,6 +43,11 @@ const OverviewPage = () => {
             color="#3B82F6"
           />
         </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <SpeciesOverviewChart />
+          <BasicInfo />
+        </div>
       </main>
     </div>
   )

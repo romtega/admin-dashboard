@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom"
 import OverviewPage from "@/pages/OverviewPage"
 import SpeciesPage from "@/pages/SpeciesPage"
-import Sidebar from "@/components/Sidebar"
+import Sidebar from "@/components/common/Sidebar"
 
 function App() {
   return (

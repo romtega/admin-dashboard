@@ -66,7 +66,8 @@ const SpeciesTable = () => {
 
   return (
     <motion.div
-      className="bg-[#2E3D36] flex flex-col h-full overflow-hidden shadow-md rounded-xl border border-[#5F7A6A] p-6"
+      className="bg-[#2E3D36] flex flex-col shadow-md rounded-xl border border-[#5F7A6A] p-6 mb-8 sm:max-h-[62vh] max-h-[
+      70vh]"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
@@ -79,7 +80,7 @@ const SpeciesTable = () => {
 
         {/* Button & Search Input Container */}
         <div className="flex items-center gap-4 w-full sm:w-auto">
-          <button className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md transition-all hover:bg-[#4E6658] focus:outline-none focus:ring-2 focus:ring-[#5F7A6A] flex items-center gap-2">
+          <button className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md transition-all hover:bg-[#4E6658] focus:outline-none focus:ring-2 focus:ring-[#5F7A6A] flex items-center gap-2 cursor-pointer">
             <Plus size={18} /> Agregar
           </button>
 
@@ -98,9 +99,8 @@ const SpeciesTable = () => {
           </div>
         </div>
       </div>
-      {/* Table Wrapper - Makes the table scrollable */}
-      <div className="flex-1 overflow-auto">
-        <table className="min-w-full divide-y divide-gray-700">
+      <div className="overflow-auto">
+        <table className="min-w-full divide-y divide-gray-700 ">
           <thead>
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
@@ -146,7 +146,7 @@ const SpeciesTable = () => {
                   {specie.numero}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                  <button className="text-indigo-400 hover:text-indigo-300 mr-2 cursor-pointer">
+                  <button className="text-[#F59E0B] hover:text-indigo-300 mr-2 cursor-pointer">
                     <Edit size={18} />
                   </button>
                   <button className="text-red-400 hover:text-red-300 cursor-pointer">

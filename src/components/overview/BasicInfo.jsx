@@ -1,4 +1,45 @@
 import { motion } from "framer-motion"
+import {
+  MapPin,
+  ArrowUpCircle,
+  Sun,
+  Calendar,
+  CloudSun,
+  Moon,
+} from "lucide-react"
+
+const BASIC_INFO = [
+  {
+    icon: MapPin,
+    color: "text-teal-500",
+    value: "Chiquilistlan",
+  },
+  {
+    icon: ArrowUpCircle,
+    color: "text-indigo-500",
+    value: "1,234 msnm",
+  },
+  {
+    icon: Sun,
+    color: "text-yellow-500",
+    value: "Verano",
+  },
+  {
+    icon: Calendar,
+    color: "text-orange-500",
+    value: "1",
+  },
+  {
+    icon: CloudSun,
+    color: "text-red-500",
+    value: "Soleado",
+  },
+  {
+    icon: Moon,
+    color: "text-purple-500",
+    value: "Luna llena",
+  },
+]
 
 const BasicInfo = () => {
   return (
@@ -9,30 +50,14 @@ const BasicInfo = () => {
       transition={{ delay: 0.2 }}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 px-5 py-6 sm:p-5 justify-center h-full items-center gap-4">
-        <div className="flex flex-col w-full">
-          <span className="text-sm font-light text-gray-300">Lugar:</span>
-          <span className="text-lg font-medium text-white">Chiquilistlan</span>
-        </div>
-        <div className="flex flex-col w-full">
-          <span className="text-sm font-light text-gray-300">Altitud:</span>
-          <span className="text-lg font-medium text-white">1,234 msnm</span>
-        </div>
-        <div className="flex flex-col w-full">
-          <span className="text-sm font-light text-gray-300">Temporada:</span>
-          <span className="text-lg font-medium text-white">Verano</span>
-        </div>
-        <div className="flex flex-col w-full">
-          <span className="text-sm font-light text-gray-300">Año:</span>
-          <span className="text-lg font-medium text-white">1</span>
-        </div>
-        <div className="flex flex-col w-full">
-          <span className="text-sm font-light text-gray-300">Clima:</span>
-          <span className="text-lg font-medium text-white">Soleado</span>
-        </div>
-        <div className="flex flex-col w-full">
-          <span className="text-sm font-light text-gray-300">Fase Lunar:</span>
-          <span className="text-lg font-medium text-white">Luna llena</span>
-        </div>
+        {BASIC_INFO.map((item, index) => (
+          <div key={index} className="flex items-center space-x-3 w-full">
+            <div className={`p-2 rounded-full ${item.color} bg-opacity-20`}>
+              <item.icon className={`w-6 h-6 ${item.color}`} />
+            </div>
+            <span className="text-lg font-medium text-white">{item.value}</span>
+          </div>
+        ))}
       </div>
     </motion.div>
   )

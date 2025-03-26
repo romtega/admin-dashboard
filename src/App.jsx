@@ -2,6 +2,10 @@ import { Routes, Route } from "react-router-dom"
 import OverviewPage from "@/pages/OverviewPage"
 import SpeciesPage from "@/pages/SpeciesPage"
 import Sidebar from "@/components/common/Sidebar"
+import SoilStructurePage from "./pages/SoilStructurePage"
+import BlogPage from "./pages/BlogPage"
+import AdminProfilePage from "./pages/AdminProfilePage"
+import WeatherPage from "./pages/WeatherPage"
 
 function App() {
   return (
@@ -13,7 +17,11 @@ function App() {
       <Sidebar />
       <Routes>
         <Route path="/" element={<OverviewPage />} />
+        <Route path="/soil-structure" element={<SoilStructurePage />} />
         <Route path="/species" element={<SpeciesPage />} />
+        <Route path="/blog" element={<BlogPage />} />
+        <Route path="/admin" element={<AdminProfilePage />} />
+        <Route path="/weather" element={<WeatherPage />} />
       </Routes>
     </div>
   )

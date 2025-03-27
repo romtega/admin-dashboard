@@ -1,4 +1,6 @@
 import { Routes, Route } from "react-router-dom"
+import { PlantProvider } from "./context/PlantContext"
+
 import OverviewPage from "@/pages/OverviewPage"
 import SpeciesPage from "@/pages/SpeciesPage"
 import Sidebar from "@/components/common/Sidebar"
@@ -15,14 +17,16 @@ function App() {
         <div className="absolute inset-0 backdrop-blur-sm" />
       </div>
       <Sidebar />
-      <Routes>
-        <Route path="/" element={<OverviewPage />} />
-        <Route path="/soil-structure" element={<SoilStructurePage />} />
-        <Route path="/species" element={<SpeciesPage />} />
-        <Route path="/blog" element={<BlogPage />} />
-        <Route path="/admin" element={<AdminProfilePage />} />
-        <Route path="/weather" element={<WeatherPage />} />
-      </Routes>
+      <PlantProvider>
+        <Routes>
+          <Route path="/" element={<OverviewPage />} />
+          <Route path="/soil-structure" element={<SoilStructurePage />} />
+          <Route path="/species" element={<SpeciesPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/admin" element={<AdminProfilePage />} />
+          <Route path="/weather" element={<WeatherPage />} />
+        </Routes>
+      </PlantProvider>
     </div>
   )
 }

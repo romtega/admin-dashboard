@@ -1,5 +1,6 @@
 import { Sprout, TreeDeciduous, Leaf, Trees } from "lucide-react"
 import { motion } from "framer-motion"
+import { usePlantContext } from "@/hooks/usePlantContext"
 
 import Header from "@/components/common/Header"
 import StatCard from "@/components/common/StatCard"
@@ -8,6 +9,12 @@ import SpeciesFamiliesChart from "@/components/species/SpeciesFamiliesChart"
 import SpeciesOverviewChart from "@/components/overview/SpeciesOverviewChart"
 
 const SpeciesPage = () => {
+  const { plantsData } = usePlantContext()
+
+  const total = plantsData.length
+  const established = plantsData.filter(plant => plant.established).length
+  const nursery = plantsData.filter(plant => plant.location === "Vivero").length
+
   return (
     <div className="flex-1 overflow-auto relative z-10">
       <Header title="Especies" />
@@ -22,18 +29,24 @@ const SpeciesPage = () => {
           <StatCard
             name="Total de Especies"
             icon={Leaf}
-            value={1234}
+            value={total}
             color="#10B981"
           />
           <StatCard
             name="Establecidas"
             icon={TreeDeciduous}
-            value={89}
+            value={established}
             color="#6366F1"
           />
-          <StatCard name="Vivero" icon={Sprout} value={23} color="#F59E0B" />
-          <StatCard name="SAF" icon={Trees} value="2" color="#EF4444" />
+          <StatCard
+            name="Vivero"
+            icon={Sprout}
+            value={nursery}
+            color="#F59E0B"
+          />
+          <StatCard name="SAF" icon={Trees} value={2} color="#EF4444" />{" "}
         </motion.div>
+
         <SpeciesTable />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -7,15 +7,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
-
-const data = [
-  { name: "Fabaceae", numero: 16 },
-  { name: "Cucurbitaceae", numero: 10 },
-  { name: "Asteraceae", numero: 20 },
-  { name: "Solanaceae", numero: 5 },
-  { name: "Rosaceae", numero: 1 },
-  { name: "Poaceae", numero: 23 },
-]
+import { usePlantContext } from "@/hooks/usePlantContext"
 
 const COLORS = [
   "#8884d8",
@@ -27,6 +19,18 @@ const COLORS = [
 ]
 
 const SpeciesFamiliesChart = () => {
+  const { plantsData } = usePlantContext()
+  const counts = {}
+  plantsData.forEach(plant => {
+    if (plant.family) {
+      counts[plant.family] = (counts[plant.family] || 0) + 1
+    }
+  })
+  const data = Object.entries(counts).map(([name, numero]) => ({
+    name,
+    numero,
+  }))
+
   return (
     <motion.div
       className="bg-[#2E3D36] backdrop-blur-md shadow-md rounded-xl p-6 border border-[#5F7A6A]"

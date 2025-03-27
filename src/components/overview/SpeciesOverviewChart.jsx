@@ -8,22 +8,51 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { motion } from "framer-motion"
+import { usePlantContext } from "@/hooks/usePlantContext"
 
-const SpeciesData = [
-  { name: "Ene", Cantidad: 0 },
-  { name: "Feb", Cantidad: 10 },
-  { name: "Mar", Cantidad: 24 },
-  { name: "Abr", Cantidad: 26 },
-  { name: "May", Cantidad: 30 },
-  { name: "Jun", Cantidad: 48 },
-  { name: "Jul", Cantidad: 66 },
-  { name: "Ago", Cantidad: 124 },
-  { name: "Sep", Cantidad: 135 },
-  { name: "Oct", Cantidad: 135 },
-  { name: "Nov", Cantidad: 167 },
-  { name: "Div", Cantidad: 200 },
-]
 const SpeciesOverviewChart = () => {
+  const { plantsData } = usePlantContext()
+
+  const getMonthlyData = () => {
+    const monthlyTotals = Array(12).fill(0)
+
+    const thisYear = new Date().getFullYear()
+    plantsData.forEach(plant => {
+      const date = new Date(plant.createdAt)
+      if (date.getFullYear() === thisYear) {
+        const month = date.getMonth() // 0 = Ene, 11 = Dic
+        monthlyTotals[month] += 1
+      }
+    })
+
+    const accumulated = []
+    let runningTotal = 0
+    const monthLabels = [
+      "Ene",
+      "Feb",
+      "Mar",
+      "Abr",
+      "May",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dic",
+    ]
+
+    for (let i = 0; i < 12; i++) {
+      runningTotal += monthlyTotals[i]
+      accumulated.push({
+        name: monthLabels[i],
+        Cantidad: runningTotal,
+      })
+    }
+
+    return accumulated
+  }
+
   return (
     <motion.div
       className="bg-[#2E3D36] backdrop-blur-md shadow-md rounded-xl p-6 border border-[#5F7A6A]"
@@ -36,7 +65,7 @@ const SpeciesOverviewChart = () => {
       </h2>
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={SpeciesData}>
+          <LineChart data={getMonthlyData()}>
             <CartesianGrid strokeDasharray="5 5" stroke="#4B5563" />
             <XAxis dataKey="name" stroke="#B3C7BF" />
             <YAxis stroke="#B3C7BF" />

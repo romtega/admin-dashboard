@@ -1,24 +1,33 @@
+// PlantForm.jsx
+import { useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
-
 import axiosInstance from "@/services/axiosConfig"
 import { usePlantContext } from "@/hooks/usePlantContext"
 
-const PlantForm = ({ onClose }) => {
+const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
   const { fetchAllPlants } = usePlantContext()
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
     reset,
-  } = useForm()
+    setValue,
+    formState: { errors },
+  } = useForm({
+    defaultValues: initialData,
+  })
+
+  useEffect(() => {
+    if (mode === "edit" && initialData) {
+      reset(initialData)
+    }
+  }, [initialData, mode, reset])
 
   const onSubmit = async data => {
     try {
       const formData = new FormData()
 
-      // Añadir campos de texto
       formData.append("commonName", data.commonName)
       formData.append("family", data.family)
       formData.append("genus", data.genus)
@@ -29,7 +38,6 @@ const PlantForm = ({ onClose }) => {
       if (data.isEstablished) formData.append("isEstablished", true)
       if (data.description) formData.append("description", data.description)
 
-      // Añadir imágenes si existen
       const imageTypes = ["full", "leaf", "small", "mature"]
       imageTypes.forEach(type => {
         if (data[type]?.length) {
@@ -39,37 +47,44 @@ const PlantForm = ({ onClose }) => {
         }
       })
 
-      // Enviar al backend
-      await axiosInstance.post("/api/v1/plants", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
+      if (mode === "edit") {
+        await axiosInstance.patch(`/api/v1/plants/${initialData._id}`, formData)
+      } else {
+        await axiosInstance.post("/api/v1/plants", formData)
+      }
 
-      // Refrescar la data
       fetchAllPlants()
-
-      // Limpiar formulario y cerrar
       reset()
       onClose?.()
     } catch (error) {
-      console.error("Error al enviar la especie:", error)
+      console.error("Error al enviar el formulario:", error)
     }
   }
 
   return (
-    <div>
-      <h2 className="mb-6 text-lg font-medium text-white">Nueva Especie</h2>
+    <motion.div
+      className="p-6  w-full"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+    >
+      <h2 className="mb-6 text-lg font-medium text-white">
+        {mode === "edit" ? "Editar Especie" : "Nueva Especie"}
+      </h2>
 
       <form
         className="grid grid-cols-1 md:grid-cols-2 gap-6"
         onSubmit={handleSubmit(onSubmit)}
       >
-        {/* Nombre común */}
         <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1">Nombre común</label>
+          <label htmlFor="commonName" className="text-sm text-gray-300 mb-1">
+            Nombre común
+          </label>
           <input
+            id="commonName"
+            name="commonName"
             {...register("commonName", { required: true })}
             className="bg-gray-700 text-white rounded-lg px-3 py-2"
-            placeholder="Ej. Guayabo"
           />
           {errors.commonName && (
             <span className="text-red-400 text-xs mt-1">
@@ -78,13 +93,15 @@ const PlantForm = ({ onClose }) => {
           )}
         </div>
 
-        {/* Familia */}
         <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1">Familia</label>
+          <label htmlFor="family" className="text-sm text-gray-300 mb-1">
+            Familia
+          </label>
           <input
+            id="family"
+            name="family"
             {...register("family", { required: true })}
             className="bg-gray-700 text-white rounded-lg px-3 py-2"
-            placeholder="Ej. Myrtaceae"
           />
           {errors.family && (
             <span className="text-red-400 text-xs mt-1">
@@ -93,13 +110,15 @@ const PlantForm = ({ onClose }) => {
           )}
         </div>
 
-        {/* Género */}
         <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1">Género</label>
+          <label htmlFor="genus" className="text-sm text-gray-300 mb-1">
+            Género
+          </label>
           <input
+            id="genus"
+            name="genus"
             {...register("genus", { required: true })}
             className="bg-gray-700 text-white rounded-lg px-3 py-2"
-            placeholder="Ej. Psidium"
           />
           {errors.genus && (
             <span className="text-red-400 text-xs mt-1">
@@ -108,13 +127,15 @@ const PlantForm = ({ onClose }) => {
           )}
         </div>
 
-        {/* Especie */}
         <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1">Especie</label>
+          <label htmlFor="species" className="text-sm text-gray-300 mb-1">
+            Especie
+          </label>
           <input
+            id="species"
+            name="species"
             {...register("species", { required: true })}
             className="bg-gray-700 text-white rounded-lg px-3 py-2"
-            placeholder="Ej. guajava"
           />
           {errors.species && (
             <span className="text-red-400 text-xs mt-1">
@@ -123,77 +144,43 @@ const PlantForm = ({ onClose }) => {
           )}
         </div>
 
-        {/* Luz solar */}
         <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1">Luz solar</label>
-          <select
-            {...register("sunlight", { required: true })}
-            className="bg-gray-700 text-white rounded-lg px-3 py-2"
-          >
-            <option value="">Seleccionar</option>
-            <option value="Sol directo">Sol directo</option>
-            <option value="Sol indirecto">Sol indirecto</option>
-            <option value="Poca luz">Poca luz</option>
-          </select>
-          {errors.sunlight && (
-            <span className="text-red-400 text-xs mt-1">
-              Este campo es requerido
-            </span>
-          )}
-        </div>
-
-        {/* Fruto */}
-        <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1">Fruto</label>
-          <select
-            {...register("fruit", { required: true })}
-            className="bg-gray-700 text-white rounded-lg px-3 py-2"
-          >
-            <option value="">Seleccionar</option>
-            <option value="Comestible">Comestible</option>
-            <option value="No comestible">No comestible</option>
-          </select>
-          {errors.fruit && (
-            <span className="text-red-400 text-xs mt-1">
-              Este campo es requerido
-            </span>
-          )}
-        </div>
-
-        {/* Cantidad */}
-        <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1">Cantidad</label>
+          <label htmlFor="quantity" className="text-sm text-gray-300 mb-1">
+            Cantidad
+          </label>
           <input
+            id="quantity"
+            name="quantity"
             type="number"
             {...register("quantity")}
             className="bg-gray-700 text-white rounded-lg px-3 py-2"
-            placeholder="Ej. 3"
           />
         </div>
 
-        {/* ¿Establecida? */}
         <div className="flex items-center gap-2 mt-6">
           <input
+            id="isEstablished"
+            name="isEstablished"
             type="checkbox"
             {...register("isEstablished")}
-            id="isEstablished"
           />
           <label htmlFor="isEstablished" className="text-sm text-gray-300">
             Establecida en campo
           </label>
         </div>
 
-        {/* Descripción */}
         <div className="col-span-full flex flex-col">
-          <label className="text-sm text-gray-300 mb-1">Descripción</label>
+          <label htmlFor="description" className="text-sm text-gray-300 mb-1">
+            Descripción
+          </label>
           <textarea
+            id="description"
+            name="description"
             {...register("description")}
             className="bg-gray-700 text-white rounded-lg px-3 py-2 h-24 resize-none"
-            placeholder="Descripción breve de la especie..."
           />
         </div>
 
-        {/* Imágenes */}
         <div className="col-span-full">
           <label className="text-sm text-gray-300 mb-2 block">
             Subir imágenes
@@ -203,10 +190,12 @@ const PlantForm = ({ onClose }) => {
               <div key={type} className="flex flex-col gap-1">
                 <span className="text-xs text-gray-400 capitalize">{type}</span>
                 <input
+                  id={type}
+                  name={type}
                   type="file"
-                  {...register(type)}
-                  accept="image/*"
                   multiple
+                  accept="image/*"
+                  {...register(type)}
                   className="text-sm text-white"
                 />
               </div>
@@ -214,25 +203,23 @@ const PlantForm = ({ onClose }) => {
           </div>
         </div>
 
-        {/* Botón de guardar */}
-        {/* Botones de acción */}
         <div className="col-span-full mt-6 flex justify-end gap-4">
           <button
             type="button"
             onClick={() => reset()}
-            className="bg-gray-600 text-white font-medium px-6 py-2 rounded-lg shadow-md hover:bg-gray-500 transition-all"
+            className="bg-gray-600 text-white font-medium px-6 py-2 rounded-lg shadow-md hover:bg-gray-500"
           >
             Limpiar
           </button>
           <button
             type="submit"
-            className="bg-[#10B981] text-white font-medium px-6 py-2 rounded-lg shadow-md hover:bg-[#0f9d70] transition-all"
+            className="bg-[#10B981] text-white font-medium px-6 py-2 rounded-lg shadow-md hover:bg-[#0f9d70]"
           >
-            Guardar
+            {mode === "edit" ? "Actualizar" : "Guardar especie"}
           </button>
         </div>
       </form>
-    </div>
+    </motion.div>
   )
 }
 

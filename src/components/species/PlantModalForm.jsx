@@ -2,10 +2,15 @@ import { X } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import PlantForm from "./PlantForm"
 
-const PlantModalForm = ({ isOpen, onClose }) => {
+const PlantModalForm = ({
+  isOpen,
+  onClose,
+  mode = "create",
+  initialData = null,
+}) => {
   return (
     <AnimatePresence>
-      {isOpen && (
+      {isOpen && (mode === "create" || initialData) && (
         <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           initial={{ opacity: 0 }}
@@ -21,14 +26,18 @@ const PlantModalForm = ({ isOpen, onClose }) => {
           >
             {/* Botón de cerrar */}
             <button
-              className="absolute top-4 right-4 text-gray-300 hover:text-red-400 transition cursor-pointer"
+              className="absolute top-4 right-4 text-gray-300 hover:text-red-400 transition"
               onClick={onClose}
             >
               <X size={20} />
             </button>
 
-            {/* Formulario */}
-            <PlantForm onClose={onClose} />
+            {/* Formulario con props */}
+            <PlantForm
+              onClose={onClose}
+              mode={mode}
+              initialData={initialData}
+            />
           </motion.div>
         </motion.div>
       )}

@@ -3,11 +3,14 @@ import { motion } from "framer-motion"
 import { Edit, Search, Trash2, Plus, Pencil } from "lucide-react"
 import { useState, useEffect } from "react"
 import { usePlantContext } from "@/hooks/usePlantContext"
-import PlantModalForm from "@/components/species/PlantModalForm"
 import axiosInstance from "@/services/axiosConfig"
+import toast from "react-hot-toast"
+
+import PlantModalForm from "@/components/species/PlantModalForm"
 
 const SpeciesTable = () => {
-  const { plantsData, fetchAllPlants } = usePlantContext()
+  const { plantsData, currentPage, totalPages, fetchPlantsByPage, loading } =
+    usePlantContext()
   const [searchTerm, setSearchTerm] = useState("")
   const [filteredData, setFilteredData] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -23,17 +26,19 @@ const SpeciesTable = () => {
     setIsModalOpen(true)
   }
 
-  const handleDelete = async plantId => {
+  const handleDelete = async id => {
     const confirm = window.confirm(
-      "¿Estás seguro de que quieres eliminar esta especie?"
+      "¿Estás seguro de que deseas eliminar esta especie?"
     )
     if (!confirm) return
 
     try {
-      await axiosInstance.delete(`/api/v1/plants/${plantId}`)
+      await axiosInstance.delete(`/api/v1/plants/${id}?destroy=false`) // Soft delete
+      toast.success("Especie eliminada correctamente")
       fetchAllPlants()
     } catch (error) {
-      console.error("Error al eliminar la especie:", error)
+      console.error("Error al eliminar:", error)
+      toast.error("Error al eliminar la especie")
     }
   }
 
@@ -45,11 +50,25 @@ const SpeciesTable = () => {
         plant.family?.toLowerCase().includes(term) ||
         plant.genus?.toLowerCase().includes(term)
     )
+
+    console.log("🔍 Datos filtrados:", filtered)
+
+    filtered.forEach(p => {
+      console.log(
+        `🌿 ${p.commonName} ->`,
+        p.images?.full?.length ? p.images.full[0] : "❌ sin imagen"
+      )
+    })
+
     setFilteredData(filtered)
   }, [searchTerm, plantsData])
 
-  const getImageUrl = imageArray => imageArray?.[0] || "fallbackImg"
-
+  const getImageUrl = imageData => {
+    if (Array.isArray(imageData) && imageData.length > 0) {
+      return imageData[0] // Primer URL de imagen
+    }
+    return "https://fastly.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U" // Ruta a imagen por defecto
+  }
   return (
     <>
       <motion.div
@@ -151,6 +170,42 @@ const SpeciesTable = () => {
               ))}
             </tbody>
           </table>
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center mt-4 gap-2">
+              <button
+                onClick={() => fetchPlantsByPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-sm rounded-md bg-gray-700 text-white disabled:opacity-30"
+              >
+                ← Anterior
+              </button>
+
+              {[...Array(totalPages)].map((_, i) => {
+                const page = i + 1
+                return (
+                  <button
+                    key={page}
+                    onClick={() => fetchPlantsByPage(page)}
+                    className={`px-3 py-1 text-sm rounded-md ${
+                      currentPage === page
+                        ? "bg-[#10B981] text-white"
+                        : "bg-gray-700 text-gray-300"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              })}
+
+              <button
+                onClick={() => fetchPlantsByPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-sm rounded-md bg-gray-700 text-white disabled:opacity-30"
+              >
+                Siguiente →
+              </button>
+            </div>
+          )}
         </div>
       </motion.div>
 

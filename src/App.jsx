@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom"
 import { PlantProvider } from "./context/PlantContext"
+import { BlogProvider } from "./context/BlogContext"
 import { Toaster } from "react-hot-toast"
 
 import OverviewPage from "@/pages/OverviewPage"
@@ -44,14 +45,16 @@ function App() {
       </div>
       <Sidebar />
       <PlantProvider>
-        <Routes>
-          <Route path="/" element={<OverviewPage />} />
-          <Route path="/soil-structure" element={<SoilStructurePage />} />
-          <Route path="/species" element={<SpeciesPage />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/admin" element={<AdminProfilePage />} />
-          <Route path="/weather" element={<WeatherPage />} />
-        </Routes>
+        <BlogProvider>
+          <Routes>
+            <Route path="/" element={<OverviewPage />} />
+            <Route path="/soil-structure" element={<SoilStructurePage />} />
+            <Route path="/species" element={<SpeciesPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/admin" element={<AdminProfilePage />} />
+            <Route path="/weather" element={<WeatherPage />} />
+          </Routes>
+        </BlogProvider>
       </PlantProvider>
     </div>
   )

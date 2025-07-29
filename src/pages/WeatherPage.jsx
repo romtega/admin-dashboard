@@ -17,7 +17,7 @@ const ClimaPage = () => {
     precipitation: 1.2,
     elevation: 1350,
     condition: "Parcialmente nublado",
-    season: "Primavera",
+    season: "Verano",
   }
 
   return (

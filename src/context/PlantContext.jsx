@@ -30,6 +30,8 @@ const PlantProvider = ({ children }) => {
   const fetchAllPlants = () => fetchPlantsByPage(currentPage)
 
   useEffect(() => {
+    console.log("Fetching blog posts")
+
     fetchPlantsByPage(1)
   }, [])
 

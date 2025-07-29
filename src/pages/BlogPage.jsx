@@ -1,40 +1,35 @@
 import { motion } from "framer-motion"
 import { Pencil, Trash2, Plus } from "lucide-react"
 import { useState } from "react"
-
+import { useBlogContext } from "@/hooks/useBlogContext"
 import Header from "@/components/common/Header"
+import StatCard from "@/components/common/StatCard"
 import ModalForm from "@/components/blog/ModalForm"
 
-const dummyPosts = [
-  {
-    id: 1,
-    title: "Cómo preparar el suelo para temporada de lluvias",
-    image: "https://via.placeholder.com/80",
-    date: "20/03/2025",
-  },
-  {
-    id: 2,
-    title: "Beneficios del compost en cultivos de temporal",
-    image: "https://via.placeholder.com/80",
-    date: "18/03/2025",
-  },
-  {
-    id: 3,
-    title: "Cómo preparar el suelo para temporada de lluvias",
-    image: "https://via.placeholder.com/80",
-    date: "20/03/2025",
-  },
-  {
-    id: 4,
-    title: "Beneficios del compost en cultivos de temporal",
-    image: "https://via.placeholder.com/80",
-    date: "18/03/2025",
-  },
+// Dummy categories, replace with actual data later
+const categoryEnum = [
+  "Diseño",
+  "Plantación",
+  "Mantenimiento",
+  "Otros",
+  "Plagas y enfermedades",
+  "Recursos",
+  "Sostenibilidad",
 ]
 
 const BlogPage = () => {
+  const { blogPosts, loading, fetchBlogPostsByPage } = useBlogContext()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editPostData, setEditPostData] = useState(null)
+
+  // Dummy statistics
+  const totalPosts = blogPosts.length
+  const activePosts = blogPosts.filter(post => post.isActive).length
+  const postsByCategory = categoryEnum.map(category => ({
+    category,
+    count: blogPosts.filter(post => post.category === category).length,
+  }))
+  const postsInDraft = blogPosts.filter(post => !post.isActive).length
 
   const handleAddPost = e => {
     e.preventDefault()
@@ -76,7 +71,35 @@ const BlogPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1 }}
       >
-        {/* Botón superior */}
+        {/* Tarjetas de Estadísticas */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+          <StatCard
+            name="Total de Publicaciones"
+            value={totalPosts}
+            icon={Pencil}
+            color="#10B981"
+          />
+          <StatCard
+            name="Activas"
+            value={activePosts}
+            icon={Pencil}
+            color="#6366F1"
+          />
+          <StatCard
+            name="Categorías"
+            value={postsByCategory.length} // Total categories available
+            icon={Pencil}
+            color="#F59E0B"
+          />
+          <StatCard
+            name="Borradores"
+            value={postsInDraft}
+            icon={Trash2}
+            color="#EF4444"
+          />
+        </div>
+
+        {/* Botón de creación de nueva publicación */}
         <div className="flex justify-end">
           <button
             onClick={() => setIsModalOpen(true)}
@@ -98,7 +121,7 @@ const BlogPage = () => {
           />
         </div>
 
-        {/* Tabla */}
+        {/* Tabla de publicaciones */}
         <div className="overflow-x-auto rounded-xl border border-[#5F7A6A] bg-[#2E3D36] shadow-md">
           <table className="min-w-full text-sm text-gray-300">
             <thead className="bg-[#374151] text-left text-xs uppercase tracking-wider text-gray-400">
@@ -106,37 +129,47 @@ const BlogPage = () => {
                 <th className="px-6 py-3">Imagen</th>
                 <th className="px-6 py-3">Título</th>
                 <th className="px-6 py-3">Fecha</th>
+                <th className="px-6 py-3">Categoría</th>
                 <th className="px-6 py-3 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {dummyPosts.map(post => (
-                <tr key={post.id} className="border-t border-[#5F7A6A]/30">
-                  <td className="px-6 py-4">
-                    <img
-                      src={post.image}
-                      alt={post.title}
-                      className="w-16 h-16 rounded-md object-cover"
-                    />
-                  </td>
-                  <td className="px-6 py-4 font-medium">{post.title}</td>
-                  <td className="px-6 py-4">{post.date}</td>
-                  <td className="px-6 py-4 text-right space-x-2">
-                    <button
-                      onClick={() => {
-                        setEditPostData(post)
-                        setIsModalOpen(true)
-                      }}
-                      className="text-yellow-400 hover:text-yellow-300"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button className="text-red-500 hover:text-red-400">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="text-center py-4">
+                    Cargando...
                   </td>
                 </tr>
-              ))}
+              ) : (
+                blogPosts.map(post => (
+                  <tr key={post._id} className="border-t border-[#5F7A6A]/30">
+                    <td className="px-6 py-4">
+                      <img
+                        src={post.images.thumbnail}
+                        alt={post.title}
+                        className="w-16 h-16 rounded-md object-cover"
+                      />
+                    </td>
+                    <td className="px-6 py-4 font-medium">{post.title}</td>
+                    <td className="px-6 py-4">{post.date}</td>
+                    <td className="px-6 py-4">{post.category}</td>
+                    <td className="px-6 py-4 text-right space-x-2">
+                      <button
+                        onClick={() => {
+                          setEditPostData(post)
+                          setIsModalOpen(true)
+                        }}
+                        className="text-yellow-400 hover:text-yellow-300"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button className="text-red-500 hover:text-red-400">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

@@ -6,14 +6,11 @@ import StatCard from "@/components/common/StatCard"
 import BlogTable from "@/components/blog/BlogTable"
 
 const BlogPage = () => {
-  const { blogPosts } = useBlogContext()
+  const { blogPosts, totalPosts } = useBlogContext()
 
-  // Calcular estadísticas dinámicamente
-  const totalPosts = blogPosts.length
   const activePosts = blogPosts.filter(post => post.isActive).length
   const postsInDraft = blogPosts.filter(post => !post.isActive).length
 
-  // Obtener las categorías dinámicamente desde las publicaciones
   const postsByCategory = blogPosts.reduce((acc, post) => {
     if (post.category) {
       acc[post.category] = (acc[post.category] || 0) + 1
@@ -21,7 +18,7 @@ const BlogPage = () => {
     return acc
   }, {})
 
-  const categoriesCount = Object.keys(postsByCategory).length // Número de categorías diferentes
+  const categoriesCount = Object.keys(postsByCategory).length
 
   return (
     <div className="flex-1 overflow-auto relative z-10">

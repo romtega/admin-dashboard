@@ -9,11 +9,7 @@ import SpeciesFamiliesChart from "@/components/species/SpeciesFamiliesChart"
 import SpeciesOverviewChart from "@/components/overview/SpeciesOverviewChart"
 
 const SpeciesPage = () => {
-  const { plantsData } = usePlantContext()
-
-  const total = plantsData.length
-  const established = plantsData.filter(plant => plant.established).length
-  const nursery = plantsData.filter(plant => plant.location === "Vivero").length
+  const { totalPlants, totalEstablished, totalNursery } = usePlantContext()
 
   return (
     <div className="flex-1 overflow-auto relative z-10">
@@ -29,19 +25,19 @@ const SpeciesPage = () => {
           <StatCard
             name="Total de Especies"
             icon={Leaf}
-            value={total}
+            value={totalPlants}
             color="#10B981"
           />
           <StatCard
             name="Establecidas"
             icon={TreeDeciduous}
-            value={established}
+            value={totalEstablished}
             color="#6366F1"
           />
           <StatCard
             name="Vivero"
             icon={Sprout}
-            value={nursery}
+            value={totalNursery}
             color="#F59E0B"
           />
           <StatCard name="SAF" icon={Trees} value={2} color="#EF4444" />{" "}

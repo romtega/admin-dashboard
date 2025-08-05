@@ -6,6 +6,9 @@ const PlantContext = createContext()
 
 const PlantProvider = ({ children }) => {
   const [plantsData, setPlantsData] = useState([])
+  const [totalPlants, setTotalPlants] = useState(0)
+  const [totalEstablished, setTotalEstablished] = useState(0)
+  const [totalNursery, setTotalNursery] = useState(0)
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -17,6 +20,9 @@ const PlantProvider = ({ children }) => {
         `/api/v1/plants?page=${page}&limit=8`
       )
       setPlantsData(response.data.plants)
+      setTotalPlants(response.data.totalPlants)
+      setTotalEstablished(response.data.totalEstablished)
+      setTotalNursery(response.data.totalNursery)
       setTotalPages(response.data.totalPages)
       setCurrentPage(Number(response.data.currentPage))
     } catch (error) {
@@ -30,13 +36,15 @@ const PlantProvider = ({ children }) => {
   const fetchAllPlants = () => fetchPlantsByPage(currentPage)
 
   useEffect(() => {
-    console.log("Fetching blog posts")
-
+    console.log("Fetching plants...")
     fetchPlantsByPage(1)
   }, [])
 
   const contextValue = {
     plantsData,
+    totalPlants,
+    totalEstablished,
+    totalNursery,
     loading,
     currentPage,
     totalPages,

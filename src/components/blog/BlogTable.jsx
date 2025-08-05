@@ -32,7 +32,7 @@ const BlogTable = () => {
     if (!confirm) return
 
     try {
-      await axiosInstance.delete(`/api/v1/blog/${slug}`)
+      await axiosInstance.delete(`/api/v1/blog/${slug}?destroy=false`) // Soft delete
       toast.success("Publicación eliminada correctamente")
       fetchBlogPostsByPage(currentPage) // Actualizar la lista de publicaciones
     } catch (error) {
@@ -40,6 +40,8 @@ const BlogTable = () => {
       toast.error("Error al eliminar la publicación")
     }
   }
+
+  const activePosts = blogPosts.filter(post => post.isActive)
 
   return (
     <>
@@ -80,7 +82,7 @@ const BlogTable = () => {
                   </td>
                 </tr>
               ) : (
-                blogPosts.map(post => (
+                activePosts.map(post => (
                   <tr key={post._id} className="border-t border-[#5F7A6A]/30">
                     <td className="px-6 py-4">
                       <img
@@ -100,7 +102,7 @@ const BlogTable = () => {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDelete(post._id)}
+                        onClick={() => handleDelete(post.slug)}
                         className="text-red-500 hover:text-red-400"
                       >
                         <Trash2 className="w-4 h-4" />

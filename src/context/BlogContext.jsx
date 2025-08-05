@@ -6,10 +6,10 @@ const BlogContext = createContext()
 
 const BlogProvider = ({ children }) => {
   const [blogPosts, setBlogPosts] = useState([])
+  const [totalPosts, setTotalPosts] = useState(0) // NUEVO
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [currentPost, setCurrentPost] = useState(null) // Para manejar una publicación específica por slug
+  const [totalPages, setTotalPages] = useState(1) // Para manejar una publicación específica por slug
 
   // Función para obtener todas las publicaciones de blog con paginación
   const fetchBlogPostsByPage = async (page = 1) => {
@@ -18,9 +18,10 @@ const BlogProvider = ({ children }) => {
       const response = await axiosInstance.get(
         `/api/v1/blog?page=${page}&limit=8`
       )
-      setBlogPosts(response.data.blogPosts) // Suponiendo que el backend devuelve blogPosts
+      setBlogPosts(response.data.blogPosts)
       setTotalPages(response.data.totalPages)
       setCurrentPage(Number(response.data.currentPage))
+      setTotalPosts(response.data.totalPosts) // Guardar el total real
     } catch (error) {
       console.error("Fetching blog posts failed", error)
       toast.error("No se pudo cargar la lista de publicaciones")
@@ -46,12 +47,14 @@ const BlogProvider = ({ children }) => {
   // Función para crear una nueva publicación de blog
   const createBlogPost = async postData => {
     try {
-      const response = await axiosInstance.post(`/api/v1/blog`, postData, {
+      const response = await axiosInstance.post("/api/v1/blog", postData, {
         headers: {
           "Content-Type": "multipart/form-data", // Asegúrate de que este header es correcto
         },
       })
       toast.success("Publicación creada con éxito")
+      fetchBlogPostsByPage(currentPage) // Actualiza las publicaciones de la página actual
+
       return response.data
     } catch (error) {
       console.error("Error creating blog post", error)
@@ -72,6 +75,8 @@ const BlogProvider = ({ children }) => {
         }
       )
       toast.success("Publicación actualizada con éxito")
+      fetchBlogPostsByPage(currentPage) // Actualiza las publicaciones de la página actual
+
       return response.data
     } catch (error) {
       console.error("Error updating blog post", error)
@@ -99,10 +104,11 @@ const BlogProvider = ({ children }) => {
 
   const contextValue = {
     blogPosts,
+    totalPosts, // nuevo
     loading,
     currentPage,
     totalPages,
-    currentPost,
+
     fetchBlogPostsByPage,
     fetchBlogPostBySlug,
     createBlogPost,

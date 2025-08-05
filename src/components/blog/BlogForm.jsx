@@ -6,7 +6,7 @@ import toast from "react-hot-toast"
 import axiosInstance from "@/services/axiosConfig"
 
 const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
-  const { fetchBlogPostsByPage } = useBlogContext()
+  const { fetchBlogPostsByPage, currentPage } = useBlogContext()
 
   const {
     register,
@@ -46,7 +46,7 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
         toast.success("Publicación creada correctamente")
       }
 
-      fetchBlogPostsByPage() // Recargar la lista de publicaciones
+      fetchBlogPostsByPage(currentPage) // Recargar la lista de publicaciones
       reset() // Limpiar el formulario
       onClose?.() // Cerrar el modal
     } catch (error) {

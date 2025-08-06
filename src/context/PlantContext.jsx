@@ -13,11 +13,11 @@ const PlantProvider = ({ children }) => {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  const fetchPlantsByPage = async (page = 1) => {
+  const fetchPlantsByPage = async (page = 1, search = "") => {
     setLoading(true)
     try {
       const response = await axiosInstance.get(
-        `/api/v1/plants?page=${page}&limit=8`
+        `/api/v1/plants?page=${page}&limit=8&search=${search}`
       )
       setPlantsData(response.data.plants)
       setTotalPlants(response.data.totalPlants)
@@ -36,7 +36,6 @@ const PlantProvider = ({ children }) => {
   const fetchAllPlants = () => fetchPlantsByPage(currentPage)
 
   useEffect(() => {
-    console.log("Fetching plants...")
     fetchPlantsByPage(1)
   }, [])
 

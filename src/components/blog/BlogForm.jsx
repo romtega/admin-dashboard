@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
 import { useBlogContext } from "@/hooks/useBlogContext"
@@ -7,37 +7,67 @@ import axiosInstance from "@/services/axiosConfig"
 
 const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
   const { fetchBlogPostsByPage, currentPage } = useBlogContext()
+  const [previewImages, setPreviewImages] = useState([])
+  const [existingImages, setExistingImages] = useState([])
 
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm({
     defaultValues: initialData,
   })
 
-  useEffect(() => {
-    if (mode === "edit" && initialData) {
-      reset(initialData)
-    }
-  }, [initialData, mode, reset])
+  const watchImages = watch("images")
 
-  // Handle form submission
+  // Cargar imágenes actuales si estamos editando
+  useEffect(() => {
+    if (mode === "edit" && initialData?.images) {
+      const existing = [
+        initialData.images.thumbnail,
+        ...(initialData.images.gallery || []),
+      ].filter(Boolean)
+      setExistingImages(existing)
+    }
+  }, [mode, initialData])
+
+  // Previsualizar imágenes nuevas
+  useEffect(() => {
+    if (watchImages && watchImages.length > 0) {
+      const previews = Array.from(watchImages)
+        .filter(file => file instanceof File)
+        .map(file => URL.createObjectURL(file))
+      setPreviewImages(previews)
+
+      return () => previews.forEach(url => URL.revokeObjectURL(url))
+    } else {
+      setPreviewImages([])
+    }
+  }, [watchImages])
+
   const onSubmit = async data => {
     try {
+      // ✅ Validación manual antes de enviar
+      if (!data.title || !data.description || !data.content || !data.category) {
+        toast.error("Todos los campos obligatorios deben estar completos")
+        return
+      }
+
       const formData = new FormData()
       formData.append("title", data.title)
       formData.append("description", data.description)
       formData.append("content", data.content)
-      formData.append("category", data.category) // Añadimos la categoría
+      formData.append("category", data.category)
 
-      // If image is uploaded, append it to the formData
-      if (data.image && data.image[0]) {
-        formData.append("image", data.image[0])
+      // Agregar imágenes nuevas si hay
+      if (data.images && data.images.length > 0) {
+        for (let i = 0; i < data.images.length; i++) {
+          formData.append("images", data.images[i])
+        }
       }
 
-      // Create or update post
       if (mode === "edit") {
         await axiosInstance.patch(`/api/v1/blog/${initialData.slug}`, formData)
         toast.success("Publicación actualizada correctamente")
@@ -46,17 +76,17 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
         toast.success("Publicación creada correctamente")
       }
 
-      fetchBlogPostsByPage(currentPage) // Recargar la lista de publicaciones
-      reset() // Limpiar el formulario
-      onClose?.() // Cerrar el modal
+      fetchBlogPostsByPage(currentPage)
+      reset()
+      onClose?.()
     } catch (error) {
       console.error("Error al enviar el formulario:", error)
 
       if (error.response) {
-        const serverMessage =
+        toast.error(
           error.response.data?.error ||
-          "Error en el servidor al guardar la publicación"
-        toast.error(serverMessage)
+            "Error en el servidor al guardar la publicación"
+        )
       } else if (error.request) {
         toast.error("No se pudo conectar con el servidor")
       } else {
@@ -77,7 +107,7 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
       </h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Title */}
+        {/* Título */}
         <div className="flex flex-col">
           <label className="text-gray-400" htmlFor="title">
             Título
@@ -94,7 +124,7 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
           )}
         </div>
 
-        {/* Description */}
+        {/* Descripción */}
         <div className="flex flex-col">
           <label className="text-gray-400" htmlFor="description">
             Descripción
@@ -114,15 +144,13 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
           )}
         </div>
 
-        {/* Content */}
+        {/* Contenido */}
         <div className="flex flex-col">
           <label className="text-gray-400" htmlFor="content">
             Contenido
           </label>
           <textarea
-            {...register("content", {
-              required: "Este campo es requerido",
-            })}
+            {...register("content", { required: "Este campo es requerido" })}
             id="content"
             className="bg-gray-700 text-white p-2 rounded-md"
             placeholder="Contenido de la publicación"
@@ -134,15 +162,13 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
           )}
         </div>
 
-        {/* Category */}
+        {/* Categoría */}
         <div className="flex flex-col">
           <label className="text-gray-400" htmlFor="category">
             Categoría
           </label>
           <select
-            {...register("category", {
-              required: "Este campo es requerido",
-            })}
+            {...register("category", { required: "Este campo es requerido" })}
             id="category"
             className="bg-gray-700 text-white p-2 rounded-md"
           >
@@ -162,20 +188,55 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
           )}
         </div>
 
-        {/* Image */}
+        {/* Subida de imágenes */}
         <div className="flex flex-col">
-          <label className="text-gray-400" htmlFor="image">
-            Imagen
+          <label className="text-gray-400" htmlFor="images">
+            Imágenes (puedes subir varias)
           </label>
           <input
             type="file"
-            {...register("image")}
+            {...register("images")}
             accept="image/*"
+            multiple
             className="text-sm text-white"
           />
         </div>
 
-        {/* Submit Buttons */}
+        {/* Imágenes actuales (modo edición) */}
+        {mode === "edit" && existingImages.length > 0 && (
+          <div>
+            <p className="text-gray-400 text-sm mb-2">Imágenes actuales:</p>
+            <div className="grid grid-cols-3 gap-2">
+              {existingImages.map((img, idx) => (
+                <img
+                  key={idx}
+                  src={img}
+                  alt={`Imagen actual ${idx}`}
+                  className="w-full h-24 object-cover rounded-md border border-gray-600"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Previsualización de nuevas imágenes */}
+        {previewImages.length > 0 && (
+          <div>
+            <p className="text-gray-400 text-sm mb-2">Nuevas imágenes:</p>
+            <div className="grid grid-cols-3 gap-2">
+              {previewImages.map((src, idx) => (
+                <img
+                  key={idx}
+                  src={src}
+                  alt={`Preview ${idx}`}
+                  className="w-full h-24 object-cover rounded-md border border-gray-600"
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Botones */}
         <div className="flex justify-end space-x-4 pt-4">
           <button
             type="button"

@@ -1,7 +1,7 @@
 // SpeciesTable.jsx
 import { motion } from "framer-motion"
 import { Edit, Search, Trash2, Plus, Pencil } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { usePlantContext } from "@/hooks/usePlantContext"
 import axiosInstance from "@/services/axiosConfig"
 import toast from "react-hot-toast"
@@ -12,7 +12,6 @@ const SpeciesTable = () => {
   const { plantsData, currentPage, totalPages, fetchPlantsByPage, loading } =
     usePlantContext()
   const [searchTerm, setSearchTerm] = useState("")
-  const [filteredData, setFilteredData] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editPlantData, setEditPlantData] = useState(null)
 
@@ -35,33 +34,12 @@ const SpeciesTable = () => {
     try {
       await axiosInstance.delete(`/api/v1/plants/${id}?destroy=false`) // Soft delete
       toast.success("Especie eliminada correctamente")
-      fetchAllPlants()
+      fetchPlantsByPage(currentPage)
     } catch (error) {
       console.error("Error al eliminar:", error)
       toast.error("Error al eliminar la especie")
     }
   }
-
-  useEffect(() => {
-    const term = searchTerm.toLowerCase()
-    const filtered = plantsData.filter(
-      plant =>
-        plant.commonName?.toLowerCase().includes(term) ||
-        plant.family?.toLowerCase().includes(term) ||
-        plant.genus?.toLowerCase().includes(term)
-    )
-
-    console.log("🔍 Datos filtrados:", filtered)
-
-    filtered.forEach(p => {
-      console.log(
-        `🌿 ${p.commonName} ->`,
-        p.images?.full?.length ? p.images.full[0] : "❌ sin imagen"
-      )
-    })
-
-    setFilteredData(filtered)
-  }, [searchTerm, plantsData])
 
   const getImageUrl = imageData => {
     if (Array.isArray(imageData) && imageData.length > 0) {
@@ -99,7 +77,10 @@ const SpeciesTable = () => {
                 type="text"
                 placeholder="Buscar especie..."
                 className="bg-gray-700 text-white placeholder-gray-400 rounded-lg pl-10 pr-4 py-2 w-full"
-                onChange={e => setSearchTerm(e.target.value)}
+                onChange={e => {
+                  setSearchTerm(e.target.value)
+                  fetchPlantsByPage(1, e.target.value) // 🔹 Búsqueda global desde página 1
+                }}
                 value={searchTerm}
               />
             </div>
@@ -128,7 +109,7 @@ const SpeciesTable = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
-              {filteredData.map(plant => (
+              {plantsData.map(plant => (
                 <motion.tr
                   key={plant._id}
                   initial={{ opacity: 0 }}

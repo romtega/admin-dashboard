@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
 import { usePlantContext } from "@/hooks/usePlantContext"
@@ -7,24 +7,46 @@ import axiosInstance from "@/services/axiosConfig"
 
 const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
   const { fetchAllPlants } = usePlantContext()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [imagePreviews, setImagePreviews] = useState({})
 
   const {
     register,
     handleSubmit,
     reset,
-    setValue,
+    watch,
     formState: { errors },
   } = useForm({
     defaultValues: initialData,
   })
 
+  // Cargar datos en modo edición
   useEffect(() => {
     if (mode === "edit" && initialData) {
       reset(initialData)
+      setImagePreviews(initialData.images || {})
     }
   }, [initialData, mode, reset])
 
+  // Manejo de previsualizaciones de imágenes
+  const watchImages = watch(["full", "leaf", "small", "mature"])
+  useEffect(() => {
+    const previews = {}
+    ;["full", "leaf", "small", "mature"].forEach(type => {
+      const files = watchImages[type]
+      if (files && files.length > 0 && files[0] instanceof File) {
+        previews[type] = Array.from(files).map(file =>
+          URL.createObjectURL(file)
+        )
+      } else if (initialData?.images?.[type]?.length) {
+        previews[type] = initialData.images[type]
+      }
+    })
+    setImagePreviews(prev => ({ ...prev, ...previews }))
+  }, [watchImages, initialData])
+
   const onSubmit = async data => {
+    setIsSubmitting(true)
     try {
       const formData = new FormData()
       formData.append("commonName", data.commonName)
@@ -34,11 +56,10 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
       formData.append("sunlight", data.sunlight)
       formData.append("fruit", data.fruit)
       if (data.quantity) formData.append("quantity", data.quantity)
-      if (data.isEstablished) formData.append("isEstablished", true)
+      formData.append("isEstablished", !!data.isEstablished) // siempre enviar
       if (data.description) formData.append("description", data.description)
 
       const imageTypes = ["full", "leaf", "small", "mature"]
-
       imageTypes.forEach(type => {
         const files = data[type]
         if (files && files.length > 0 && files[0] instanceof File) {
@@ -47,10 +68,6 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
           }
         }
       })
-
-      for (const pair of formData.entries()) {
-        console.log(`[FormData] ${pair[0]}:`, pair[1])
-      }
 
       if (mode === "edit") {
         await axiosInstance.patch(`/api/v1/plants/${initialData._id}`, formData)
@@ -65,31 +82,21 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
       onClose?.()
     } catch (error) {
       console.error("Error al enviar el formulario:", error)
-
       if (error.response) {
-        // Error enviado por el servidor (status 400, 500, etc.)
-        const serverMessage =
-          error.response.data?.error ||
-          "Error en el servidor al guardar la especie"
-        toast.error(serverMessage)
-        // console.error("💥 DATA desde backend:", error.response.data)
-        // const mensajes = error.response.data?.errors || [
-        //   error.response.data?.error,
-        // ]
-        // mensajes.forEach(msg => toast.error(msg))
+        toast.error(error.response.data?.error || "Error en el servidor")
       } else if (error.request) {
-        // No hubo respuesta del servidor
         toast.error("No se pudo conectar con el servidor")
       } else {
-        // Error inesperado
         toast.error("Error desconocido al enviar el formulario")
       }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
     <motion.div
-      className=" p-6"
+      className="p-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
@@ -104,15 +111,11 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
       >
         {/* Nombre común */}
         <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1" htmlFor="commonName">
+          <label htmlFor="commonName" className="text-sm text-gray-300 mb-1">
             Nombre común
           </label>
           <input
-            {...register("commonName", {
-              required: "Este campo es requerido",
-              minLength: { value: 2, message: "Mínimo 2 caracteres" },
-              maxLength: { value: 50, message: "Máximo 50 caracteres" },
-            })}
+            {...register("commonName", { required: "Este campo es requerido" })}
             className="bg-gray-700 text-white rounded-lg px-3 py-2"
             placeholder="Ej. Guayabo"
             id="commonName"
@@ -126,14 +129,11 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
 
         {/* Familia */}
         <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1" htmlFor="family">
+          <label htmlFor="family" className="text-sm text-gray-300 mb-1">
             Familia
           </label>
           <input
-            {...register("family", {
-              required: "Este campo es requerido",
-              minLength: { value: 2, message: "Mínimo 2 caracteres" },
-            })}
+            {...register("family", { required: "Este campo es requerido" })}
             className="bg-gray-700 text-white rounded-lg px-3 py-2"
             placeholder="Ej. Myrtaceae"
             id="family"
@@ -147,14 +147,11 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
 
         {/* Género */}
         <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1" htmlFor="genus">
+          <label htmlFor="genus" className="text-sm text-gray-300 mb-1">
             Género
           </label>
           <input
-            {...register("genus", {
-              required: "Este campo es requerido",
-              minLength: { value: 2, message: "Mínimo 2 caracteres" },
-            })}
+            {...register("genus", { required: "Este campo es requerido" })}
             className="bg-gray-700 text-white rounded-lg px-3 py-2"
             placeholder="Ej. Psidium"
             id="genus"
@@ -168,14 +165,11 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
 
         {/* Especie */}
         <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1" htmlFor="species">
+          <label htmlFor="species" className="text-sm text-gray-300 mb-1">
             Especie
           </label>
           <input
-            {...register("species", {
-              required: "Este campo es requerido",
-              minLength: { value: 2, message: "Mínimo 2 caracteres" },
-            })}
+            {...register("species", { required: "Este campo es requerido" })}
             className="bg-gray-700 text-white rounded-lg px-3 py-2"
             placeholder="Ej. guajava"
             id="species"
@@ -189,14 +183,12 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
 
         {/* Cantidad */}
         <div className="flex flex-col">
-          <label className="text-sm text-gray-300 mb-1" htmlFor="quantity">
+          <label htmlFor="quantity" className="text-sm text-gray-300 mb-1">
             Cantidad
           </label>
           <input
             type="number"
-            {...register("quantity", {
-              min: { value: 0, message: "La cantidad no puede ser negativa" },
-            })}
+            {...register("quantity", { min: 0 })}
             className="bg-gray-700 text-white rounded-lg px-3 py-2"
             placeholder="Ej. 3"
             id="quantity"
@@ -235,11 +227,6 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
             <option value="Sol indirecto">Sol indirecto</option>
             <option value="Poca luz">Poca luz</option>
           </select>
-          {errors.sunlight && (
-            <span className="text-red-400 text-xs mt-1">
-              {errors.sunlight.message}
-            </span>
-          )}
         </div>
 
         {/* Tipo de fruto */}
@@ -256,31 +243,19 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
             <option value="Comestible">Comestible</option>
             <option value="No comestible">No comestible</option>
           </select>
-          {errors.fruit && (
-            <span className="text-red-400 text-xs mt-1">
-              {errors.fruit.message}
-            </span>
-          )}
         </div>
 
         {/* Descripción */}
         <div className="col-span-full flex flex-col">
-          <label className="text-sm text-gray-300 mb-1" htmlFor="description">
+          <label htmlFor="description" className="text-sm text-gray-300 mb-1">
             Descripción
           </label>
           <textarea
-            {...register("description", {
-              maxLength: { value: 500, message: "Máximo 500 caracteres" },
-            })}
+            {...register("description", { maxLength: 500 })}
             className="bg-gray-700 text-white rounded-lg px-3 py-2 h-24 resize-none"
-            placeholder="Descripción breve de la especie..."
+            placeholder="Descripción breve..."
             id="description"
           />
-          {errors.description && (
-            <span className="text-red-400 text-xs mt-1">
-              {errors.description.message}
-            </span>
-          )}
         </div>
 
         {/* Imágenes */}
@@ -292,6 +267,18 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
             {["full", "leaf", "small", "mature"].map(type => (
               <div key={type} className="flex flex-col gap-1">
                 <span className="text-xs text-gray-400 capitalize">{type}</span>
+                {imagePreviews[type]?.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {imagePreviews[type].map((src, idx) => (
+                      <img
+                        key={idx}
+                        src={src}
+                        alt={`${type}-${idx}`}
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                    ))}
+                  </div>
+                )}
                 <input
                   type="file"
                   {...register(type)}
@@ -309,15 +296,22 @@ const PlantForm = ({ onClose, mode = "create", initialData = {} }) => {
           <button
             type="button"
             onClick={() => reset()}
-            className="bg-gray-600 text-white font-medium px-6 py-2 rounded-lg shadow-md hover:bg-gray-500 transition-all"
+            className="bg-gray-600 text-white px-6 py-2 rounded-lg"
           >
             Limpiar
           </button>
           <button
             type="submit"
-            className="bg-[#10B981] text-white font-medium px-6 py-2 rounded-lg shadow-md hover:bg-[#0f9d70] transition-all"
+            disabled={isSubmitting}
+            className={`px-6 py-2 rounded-lg text-white ${
+              isSubmitting ? "bg-gray-500" : "bg-[#10B981] hover:bg-[#0f9d70]"
+            }`}
           >
-            {mode === "edit" ? "Actualizar" : "Guardar especie"}
+            {isSubmitting
+              ? "Guardando..."
+              : mode === "edit"
+              ? "Actualizar"
+              : "Guardar especie"}
           </button>
         </div>
       </form>

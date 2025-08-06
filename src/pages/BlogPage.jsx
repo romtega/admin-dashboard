@@ -6,20 +6,8 @@ import StatCard from "@/components/common/StatCard"
 import BlogTable from "@/components/blog/BlogTable"
 
 const BlogPage = () => {
-  const { blogPosts, totalPosts } = useBlogContext()
-
-  const activePosts = blogPosts.filter(post => post.isActive).length
-  const postsInDraft = blogPosts.filter(post => !post.isActive).length
-
-  const postsByCategory = blogPosts.reduce((acc, post) => {
-    if (post.category) {
-      acc[post.category] = (acc[post.category] || 0) + 1
-    }
-    return acc
-  }, {})
-
-  const categoriesCount = Object.keys(postsByCategory).length
-
+  const { totalPosts, totalActivePosts, totalCategories, totalDraftPosts } =
+    useBlogContext()
   return (
     <div className="flex-1 overflow-auto relative z-10">
       <Header title="Blog" />
@@ -40,21 +28,21 @@ const BlogPage = () => {
           />
           <StatCard
             name="Activas"
-            value={activePosts}
+            value={totalActivePosts}
             icon={Pencil}
             color="#6366F1"
           />
           <StatCard
-            name="Categorías"
-            value={categoriesCount} // Número total de categorías distintas
-            icon={Pencil}
-            color="#F59E0B"
-          />
-          <StatCard
             name="Borradores"
-            value={postsInDraft}
+            value={totalDraftPosts}
             icon={Trash2}
             color="#EF4444"
+          />
+          <StatCard
+            name="Categorías"
+            value={totalCategories}
+            icon={Pencil}
+            color="#F59E0B"
           />
         </motion.div>
 

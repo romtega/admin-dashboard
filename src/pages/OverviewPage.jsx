@@ -1,5 +1,6 @@
 import { motion } from "framer-motion"
-import { Sprout, NotebookPen, MountainSnow, CloudRain } from "lucide-react"
+import { Leaf, NotebookPen, MountainSnow, CloudRain } from "lucide-react"
+import { usePlantContext } from "@/hooks/usePlantContext"
 
 import Header from "@/components/common/Header"
 import StatCard from "@/components/common/StatCard"
@@ -7,6 +8,8 @@ import SpeciesOverviewChart from "@/components/overview/SpeciesOverviewChart"
 import BasicInfo from "@/components/overview/BasicInfo"
 
 const OverviewPage = () => {
+  const { totalPlants } = usePlantContext()
+
   return (
     <div className="flex-1 overflow-auto relative z-10">
       <Header title="General" />
@@ -19,10 +22,10 @@ const OverviewPage = () => {
           transition={{ duration: 1 }}
         >
           <StatCard
-            name="No. de Especies"
-            icon={Sprout}
-            value="123"
-            color="#22C55E"
+            name="Total de Especies"
+            icon={Leaf}
+            value={totalPlants}
+            color="#10B981"
           />
           <StatCard
             name="No. de Publicaciones"

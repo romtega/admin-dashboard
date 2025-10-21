@@ -1,3 +1,4 @@
+// SpeciesOverviewChart.jsx
 import {
   LineChart,
   Line,
@@ -8,50 +9,45 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { motion } from "framer-motion"
-import { usePlantContext } from "@/hooks/usePlantContext"
+import { useEffect, useRef, useState } from "react"
+import axiosInstance from "@/services/axiosConfig"
 
 const SpeciesOverviewChart = () => {
-  const { plantsData } = usePlantContext()
+  const [data, setData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const abortRef = useRef(null)
 
-  const getMonthlyData = () => {
-    const monthlyTotals = Array(12).fill(0)
+  useEffect(() => {
+    if (abortRef.current) abortRef.current.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
 
-    const thisYear = new Date().getFullYear()
-    plantsData.forEach(plant => {
-      const date = new Date(plant.createdAt)
-      if (date.getFullYear() === thisYear) {
-        const month = date.getMonth() // 0 = Ene, 11 = Dic
-        monthlyTotals[month] += 1
+    const run = async () => {
+      try {
+        setLoading(true)
+        const year = new Date().getFullYear()
+        // Puedes pasar cumulative=false si quieres valores mensuales no acumulados
+        const res = await axiosInstance.get(
+          `/api/v1/plants/stats/monthly?year=${year}&cumulative=true`,
+          { signal: controller.signal }
+        )
+        setData(res.data?.data ?? [])
+      } catch (err) {
+        if (err?.name !== "CanceledError" && err?.code !== "ERR_CANCELED") {
+          console.error("Error cargando stats mensuales:", err)
+          setData([])
+        }
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null
+          setLoading(false)
+        }
       }
-    })
-
-    const accumulated = []
-    let runningTotal = 0
-    const monthLabels = [
-      "Ene",
-      "Feb",
-      "Mar",
-      "Abr",
-      "May",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dic",
-    ]
-
-    for (let i = 0; i < 12; i++) {
-      runningTotal += monthlyTotals[i]
-      accumulated.push({
-        name: monthLabels[i],
-        Cantidad: runningTotal,
-      })
     }
 
-    return accumulated
-  }
+    run()
+    return () => controller.abort()
+  }, [])
 
   return (
     <motion.div
@@ -61,31 +57,37 @@ const SpeciesOverviewChart = () => {
       transition={{ delay: 0.2 }}
     >
       <h2 className="mb-4 text-lg font-medium text-white">
-        Numero de Especies
+        Número de Especies
       </h2>
       <div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={getMonthlyData()}>
-            <CartesianGrid strokeDasharray="5 5" stroke="#4B5563" />
-            <XAxis dataKey="name" stroke="#B3C7BF" />
-            <YAxis stroke="#B3C7BF" />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#2E3D36",
-                borderColor: "#5F7A6A",
-              }}
-              itemStyle={{ color: "#B3C7BF" }}
-            />
-            <Line
-              type="monotone"
-              dataKey="Cantidad"
-              stroke="#22C55E"
-              strokeWidth={2}
-              dot={{ fill: "#22C55E", strokeWidth: 3, r: 3 }}
-              activeDot={{ r: 8, strokeWidth: 2 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {loading ? (
+          <div className="w-full h-full flex items-center justify-center text-gray-300 text-sm">
+            Cargando…
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="5 5" stroke="#4B5563" />
+              <XAxis dataKey="name" stroke="#B3C7BF" />
+              <YAxis stroke="#B3C7BF" allowDecimals={false} />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#2E3D36",
+                  borderColor: "#5F7A6A",
+                }}
+                itemStyle={{ color: "#B3C7BF" }}
+              />
+              <Line
+                type="monotone"
+                dataKey="Cantidad"
+                stroke="#22C55E"
+                strokeWidth={2}
+                dot={{ fill: "#22C55E", strokeWidth: 3, r: 3 }}
+                activeDot={{ r: 8, strokeWidth: 2 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </motion.div>
   )

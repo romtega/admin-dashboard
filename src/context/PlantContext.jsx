@@ -1,4 +1,5 @@
-import { createContext, useState, useEffect } from "react"
+// src/context/PlantContext.jsx
+import { createContext, useState, useEffect, useRef, useCallback } from "react"
 import axiosInstance from "@/services/axiosConfig"
 import toast from "react-hot-toast"
 
@@ -13,31 +14,64 @@ const PlantProvider = ({ children }) => {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  const fetchPlantsByPage = async (page = 1, search = "") => {
-    setLoading(true)
-    try {
-      const response = await axiosInstance.get(
-        `/api/v1/plants?page=${page}&limit=8&search=${search}`
-      )
-      setPlantsData(response.data.plants)
-      setTotalPlants(response.data.totalPlants)
-      setTotalEstablished(response.data.totalEstablished)
-      setTotalNursery(response.data.totalNursery)
-      setTotalPages(response.data.totalPages)
-      setCurrentPage(Number(response.data.currentPage))
-    } catch (error) {
-      console.error("Fetching plants failed", error)
-      toast.error("No se pudo cargar la lista de especies")
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Guardamos el AbortController del request en curso
+  const abortRef = useRef(null)
 
-  const fetchAllPlants = () => fetchPlantsByPage(currentPage)
+  const fetchPlantsByPage = useCallback(
+    async (page = 1, search = "") => {
+      // Si hay un request en curso, lo cancelamos
+      if (abortRef.current) {
+        abortRef.current.abort()
+      }
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      setLoading(true)
+      try {
+        const encoded = encodeURIComponent(search || "")
+        const response = await axiosInstance.get(
+          `/api/v1/plants?page=${page}&limit=8&search=${encoded}`,
+          { signal: controller.signal }
+        )
+
+        setPlantsData(response.data.plants)
+        setTotalPlants(response.data.totalPlants)
+        setTotalEstablished(response.data.totalEstablished)
+        setTotalNursery(response.data.totalNursery)
+        setTotalPages(response.data.totalPages)
+        setCurrentPage(Number(response.data.currentPage))
+      } catch (error) {
+        // Si fue cancelación, no mostramos error
+        const wasCanceled =
+          error?.name === "CanceledError" || error?.code === "ERR_CANCELED"
+        if (!wasCanceled) {
+          console.error("Fetching plants failed", error)
+          toast.error("No se pudo cargar la lista de especies")
+        }
+      } finally {
+        // Limpiamos el controller solo si es el activo
+        if (abortRef.current === controller) {
+          abortRef.current = null
+          setLoading(false)
+        }
+      }
+    },
+    [] // estable; no depende de estado
+  )
+
+  // Helper que usa la página actual (si necesitas llamarlo desde fuera)
+  const fetchAllPlants = useCallback(
+    () => fetchPlantsByPage(currentPage),
+    [fetchPlantsByPage, currentPage]
+  )
 
   useEffect(() => {
     fetchPlantsByPage(1)
-  }, [])
+    // cancelamos si el componente se desmonta durante una petición
+    return () => {
+      if (abortRef.current) abortRef.current.abort()
+    }
+  }, [fetchPlantsByPage])
 
   const contextValue = {
     plantsData,

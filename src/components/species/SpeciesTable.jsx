@@ -1,19 +1,33 @@
-// SpeciesTable.jsx
 import { motion } from "framer-motion"
 import { Edit, Search, Trash2, Plus, Pencil } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { usePlantContext } from "@/hooks/usePlantContext"
 import axiosInstance from "@/services/axiosConfig"
 import toast from "react-hot-toast"
 
 import PlantModalForm from "@/components/species/PlantModalForm"
 
+const DEBOUNCE_MS = 400
+
 const SpeciesTable = () => {
   const { plantsData, currentPage, totalPages, fetchPlantsByPage, loading } =
     usePlantContext()
   const [searchTerm, setSearchTerm] = useState("")
+  const [debounced, setDebounced] = useState("") // ← valor “reposado”
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editPlantData, setEditPlantData] = useState(null)
+
+  // Debounce simple: espera 400ms tras dejar de escribir
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(searchTerm), DEBOUNCE_MS)
+    return () => clearTimeout(id)
+  }, [searchTerm])
+
+  // Dispara el fetch cuando cambia el valor debounced
+  useEffect(() => {
+    // Siempre que se busca, empezamos en página 1
+    fetchPlantsByPage(1, debounced)
+  }, [debounced, fetchPlantsByPage])
 
   const openCreateForm = () => {
     setEditPlantData(null)
@@ -34,7 +48,7 @@ const SpeciesTable = () => {
     try {
       await axiosInstance.delete(`/api/v1/plants/${id}?destroy=false`) // Soft delete
       toast.success("Especie eliminada correctamente")
-      fetchPlantsByPage(currentPage)
+      fetchPlantsByPage(currentPage, debounced)
     } catch (error) {
       console.error("Error al eliminar:", error)
       toast.error("Error al eliminar la especie")
@@ -43,9 +57,9 @@ const SpeciesTable = () => {
 
   const getImageUrl = imageData => {
     if (Array.isArray(imageData) && imageData.length > 0) {
-      return imageData[0] // Primer URL de imagen
+      return imageData[0]
     }
-    return "https://fastly.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U" // Ruta a imagen por defecto
+    return "https://fastly.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U"
   }
   return (
     <>
@@ -62,7 +76,8 @@ const SpeciesTable = () => {
 
           <div className="flex items-center gap-4 w-full sm:w-auto">
             <button
-              className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-[#4E6658] flex items-center gap-2"
+              type="button"
+              className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-[#4E6658] flex items-center gap-2 cursor-pointer"
               onClick={openCreateForm}
             >
               <Plus size={18} /> Agregar
@@ -77,10 +92,7 @@ const SpeciesTable = () => {
                 type="text"
                 placeholder="Buscar especie..."
                 className="bg-gray-700 text-white placeholder-gray-400 rounded-lg pl-10 pr-4 py-2 w-full"
-                onChange={e => {
-                  setSearchTerm(e.target.value)
-                  fetchPlantsByPage(1, e.target.value) // 🔹 Búsqueda global desde página 1
-                }}
+                onChange={e => setSearchTerm(e.target.value)}
                 value={searchTerm}
               />
             </div>
@@ -135,12 +147,14 @@ const SpeciesTable = () => {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-300">
                     <button
+                      type="button"
                       onClick={() => openEditForm(plant)}
-                      className="text-[#F59E0B] hover:text-indigo-300 mr-2"
+                      className="text-[#F59E0B] hover:text-indigo-300 mr-2 cursor-pointer"
                     >
                       <Edit size={18} />
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleDelete(plant._id)}
                       className="text-red-400 hover:text-red-300 cursor-pointer"
                     >
@@ -154,9 +168,12 @@ const SpeciesTable = () => {
           {totalPages > 1 && (
             <div className="flex justify-center items-center mt-4 gap-2">
               <button
-                onClick={() => fetchPlantsByPage(currentPage - 1)}
+                onClick={() =>
+                  currentPage > 1 &&
+                  fetchPlantsByPage(currentPage - 1, debounced)
+                }
                 disabled={currentPage === 1}
-                className="px-3 py-1 text-sm rounded-md bg-gray-700 text-white disabled:opacity-30"
+                className="px-3 py-1 text-sm rounded-md bg-gray-700 text-white disabled:opacity-30 cursor-pointer"
               >
                 ← Anterior
               </button>
@@ -166,8 +183,10 @@ const SpeciesTable = () => {
                 return (
                   <button
                     key={page}
-                    onClick={() => fetchPlantsByPage(page)}
-                    className={`px-3 py-1 text-sm rounded-md ${
+                    onClick={() =>
+                      page !== currentPage && fetchPlantsByPage(page, debounced)
+                    }
+                    className={`px-3 py-1 text-sm rounded-md cursor-pointer ${
                       currentPage === page
                         ? "bg-[#10B981] text-white"
                         : "bg-gray-700 text-gray-300"
@@ -179,9 +198,12 @@ const SpeciesTable = () => {
               })}
 
               <button
-                onClick={() => fetchPlantsByPage(currentPage + 1)}
+                onClick={() =>
+                  currentPage < totalPages &&
+                  fetchPlantsByPage(currentPage + 1, debounced)
+                }
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm rounded-md bg-gray-700 text-white disabled:opacity-30"
+                className="px-3 py-1 text-sm rounded-md bg-gray-700 text-white disabled:opacity-30 cursor-pointer"
               >
                 Siguiente →
               </button>

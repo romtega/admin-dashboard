@@ -41,7 +41,7 @@ const PlantProvider = ({ children }) => {
         setTotalPages(response.data.totalPages)
         setCurrentPage(Number(response.data.currentPage))
       } catch (error) {
-        // Si fue cancelación, no mostramos error
+        // Si fue canceción, no mostramos error
         const wasCanceled =
           error?.name === "CanceledError" || error?.code === "ERR_CANCELED"
         if (!wasCanceled) {

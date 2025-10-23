@@ -26,7 +26,7 @@ const PlantModalForm = ({
           >
             {/* Botón de cerrar */}
             <button
-              className="absolute top-4 right-4 text-gray-300 hover:text-red-400 transition"
+              className="absolute top-4 right-4 text-gray-300 hover:text-red-400 transition cursor-pointer"
               onClick={onClose}
             >
               <X size={20} />

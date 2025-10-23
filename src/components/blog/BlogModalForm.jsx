@@ -27,12 +27,17 @@ const BlogModalForm = ({
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              className="absolute top-4 right-4 text-gray-400 hover:text-white cursor-pointer "
             >
               <X size={20} />
             </button>
             {/* Formulario con props */}
-            <BlogForm onClose={onClose} mode={mode} initialData={initialData} />
+            <BlogForm
+              onClose={onClose}
+              mode={mode}
+              initialData={initialData}
+              isOpen={isOpen}
+            />
           </motion.div>
         </motion.div>
       )}

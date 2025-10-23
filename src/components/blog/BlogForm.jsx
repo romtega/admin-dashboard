@@ -1,97 +1,201 @@
-import { useEffect, useState } from "react"
+// src/components/blog/BlogForm.jsx
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
 import { useBlogContext } from "@/hooks/useBlogContext"
 import toast from "react-hot-toast"
 import axiosInstance from "@/services/axiosConfig"
 
-const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
-  const { fetchBlogPostsByPage, currentPage } = useBlogContext()
-  const [previewImages, setPreviewImages] = useState([])
-  const [existingImages, setExistingImages] = useState([])
+const CATEGORIES = [
+  "Diseño",
+  "Plantación",
+  "Mantenimiento",
+  "Otros",
+  "Plagas y enfermedades",
+  "Recursos",
+  "Sostenibilidad",
+]
+
+const BlogForm = ({ isOpen, onClose, mode = "create", initialData = {} }) => {
+  const { fetchBlogPostsByPage, currentPage, searchTerm } = useBlogContext()
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Previews nuevas
+  const [thumbnailPreview, setThumbnailPreview] = useState(null)
+  const [galleryPreview, setGalleryPreview] = useState([])
+
+  // Existentes (solo en edición)
+  const [existingThumbnail, setExistingThumbnail] = useState(null)
+  const [existingGallery, setExistingGallery] = useState([])
 
   const {
     register,
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({
-    defaultValues: initialData,
+    defaultValues: {
+      title: initialData?.title || "",
+      description: initialData?.description || "",
+      content: initialData?.content || "",
+      category: initialData?.category || "",
+      relatedPlants: (initialData?.relatedPlants || []).map(String),
+      isActive: initialData?.isActive ?? true,
+      thumbnail: undefined, // archivos nuevos
+      gallery: undefined, // archivos nuevos
+    },
   })
 
-  const watchImages = watch("images")
+  const watchThumb = watch("thumbnail")
+  const watchGallery = watch("gallery")
+  const prevOpenRef = useRef(isOpen)
 
-  // Cargar imágenes actuales si estamos editando
+  // Sincroniza datos al cambiar modo/initialData
   useEffect(() => {
+    const safeRelated = (initialData?.relatedPlants || []).map(String)
+    reset({
+      title: initialData?.title || "",
+      description: initialData?.description || "",
+      content: initialData?.content || "",
+      category: initialData?.category || "",
+      relatedPlants: safeRelated,
+      isActive: initialData?.isActive ?? true,
+      thumbnail: undefined,
+      gallery: undefined,
+    })
+
     if (mode === "edit" && initialData?.images) {
-      const existing = [
-        initialData.images.thumbnail,
-        ...(initialData.images.gallery || []),
-      ].filter(Boolean)
-      setExistingImages(existing)
-    }
-  }, [mode, initialData])
-
-  // Previsualizar imágenes nuevas
-  useEffect(() => {
-    if (watchImages && watchImages.length > 0) {
-      const previews = Array.from(watchImages)
-        .filter(file => file instanceof File)
-        .map(file => URL.createObjectURL(file))
-      setPreviewImages(previews)
-
-      return () => previews.forEach(url => URL.revokeObjectURL(url))
+      setExistingThumbnail(initialData.images.thumbnail || null)
+      setExistingGallery(
+        Array.isArray(initialData.images.gallery)
+          ? initialData.images.gallery
+          : []
+      )
     } else {
-      setPreviewImages([])
+      setExistingThumbnail(null)
+      setExistingGallery([])
     }
-  }, [watchImages])
 
-  const onSubmit = async data => {
+    // limpiar previews nuevas
+    setThumbnailPreview(null)
+    setGalleryPreview([])
+  }, [mode, initialData, reset])
+
+  // Limpia al cerrar modal
+  useEffect(() => {
+    if (prevOpenRef.current && !isOpen) {
+      reset()
+      setExistingThumbnail(null)
+      setExistingGallery([])
+      setThumbnailPreview(null)
+      setGalleryPreview([])
+    }
+    prevOpenRef.current = isOpen
+  }, [isOpen, reset])
+
+  // Preview: thumbnail nuevo
+  useEffect(() => {
+    if (watchThumb && watchThumb.length > 0) {
+      const file = watchThumb[0]
+      if (file instanceof File) {
+        const url = URL.createObjectURL(file)
+        setThumbnailPreview(url)
+        return () => URL.revokeObjectURL(url)
+      }
+    }
+    setThumbnailPreview(null)
+  }, [watchThumb])
+
+  // Preview: gallery nueva
+  useEffect(() => {
+    if (watchGallery && watchGallery.length > 0) {
+      const files = Array.from(watchGallery).filter(
+        f => f instanceof File && f.type.startsWith("image/")
+      )
+      const urls = files.map(f => URL.createObjectURL(f))
+      setGalleryPreview(urls)
+      return () => urls.forEach(u => URL.revokeObjectURL(u))
+    }
+    setGalleryPreview([])
+  }, [watchGallery])
+
+  const relatedPlantsList = useMemo(
+    () => (initialData?.relatedPlants || []).map(String),
+    [initialData?.relatedPlants]
+  )
+
+  const onSubmit = async form => {
+    if (!form.title || !form.description || !form.content || !form.category) {
+      toast.error("Completa título, descripción, contenido y categoría.")
+      return
+    }
+
     try {
-      // ✅ Validación manual antes de enviar
-      if (!data.title || !data.description || !data.content || !data.category) {
-        toast.error("Todos los campos obligatorios deben estar completos")
-        return
+      setIsSubmitting(true)
+      const fd = new FormData()
+      fd.append("title", form.title.trim())
+      fd.append("description", form.description.trim())
+      fd.append("content", form.content.trim())
+      fd.append("category", form.category)
+
+      if (typeof form.isActive === "boolean") {
+        fd.append("isActive", String(form.isActive))
       }
 
-      const formData = new FormData()
-      formData.append("title", data.title)
-      formData.append("description", data.description)
-      formData.append("content", data.content)
-      formData.append("category", data.category)
+      if (Array.isArray(form.relatedPlants)) {
+        form.relatedPlants.forEach(id => fd.append("relatedPlants", id))
+      }
 
-      // Agregar imágenes nuevas si hay
-      if (data.images && data.images.length > 0) {
-        for (let i = 0; i < data.images.length; i++) {
-          formData.append("images", data.images[i])
+      // Thumbnail (single)
+      if (form.thumbnail && form.thumbnail.length > 0) {
+        const file = form.thumbnail[0]
+        if (!file.type.startsWith("image/")) {
+          toast.error(`Archivo no válido: ${file.name}`)
+        } else {
+          fd.append("thumbnail", file)
+        }
+      }
+
+      // Gallery (multiple)
+      if (form.gallery && form.gallery.length > 0) {
+        for (let i = 0; i < form.gallery.length; i++) {
+          const f = form.gallery[i]
+          if (!f.type.startsWith("image/")) {
+            toast.error(`Archivo no válido: ${f.name}`)
+            continue
+          }
+          fd.append("gallery", f)
         }
       }
 
       if (mode === "edit") {
-        await axiosInstance.patch(`/api/v1/blog/${initialData.slug}`, formData)
+        await axiosInstance.patch(`/api/v1/blog/${initialData.slug}`, fd)
         toast.success("Publicación actualizada correctamente")
+        // Editar: mantener página y búsqueda
+        await fetchBlogPostsByPage(currentPage, searchTerm, {
+          cancelable: false,
+        })
       } else {
-        await axiosInstance.post("/api/v1/blog", formData)
+        await axiosInstance.post("/api/v1/blog", fd)
         toast.success("Publicación creada correctamente")
+        // Crear: volver a página 1, mantener búsqueda
+        await fetchBlogPostsByPage(1, searchTerm, { cancelable: false })
       }
 
-      fetchBlogPostsByPage(currentPage)
       reset()
       onClose?.()
     } catch (error) {
       console.error("Error al enviar el formulario:", error)
-
-      if (error.response) {
-        toast.error(
-          error.response.data?.error ||
-            "Error en el servidor al guardar la publicación"
-        )
-      } else if (error.request) {
-        toast.error("No se pudo conectar con el servidor")
-      } else {
-        toast.error("Error desconocido al enviar el formulario")
-      }
+      const msg =
+        error?.response?.data?.error ||
+        error?.response?.data?.errors?.[0] ||
+        "Error al guardar la publicación"
+      toast.error(msg)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -114,10 +218,13 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
           </label>
           <input
             type="text"
-            {...register("title", { required: "Este campo es requerido" })}
             id="title"
             className="bg-gray-700 text-white p-2 rounded-md"
             placeholder="Ej. Preparación de suelo"
+            {...register("title", {
+              required: "Este campo es requerido",
+              maxLength: { value: 120, message: "Máximo 120 caracteres" },
+            })}
           />
           {errors.title && (
             <span className="text-red-400 text-xs">{errors.title.message}</span>
@@ -130,12 +237,13 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
             Descripción
           </label>
           <textarea
-            {...register("description", {
-              required: "Este campo es requerido",
-            })}
             id="description"
             className="bg-gray-700 text-white p-2 rounded-md"
             placeholder="Descripción breve"
+            {...register("description", {
+              required: "Este campo es requerido",
+              maxLength: { value: 300, message: "Máximo 300 caracteres" },
+            })}
           />
           {errors.description && (
             <span className="text-red-400 text-xs">
@@ -150,10 +258,10 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
             Contenido
           </label>
           <textarea
-            {...register("content", { required: "Este campo es requerido" })}
             id="content"
-            className="bg-gray-700 text-white p-2 rounded-md"
+            className="bg-gray-700 text-white p-2 rounded-md min-h-28"
             placeholder="Contenido de la publicación"
+            {...register("content", { required: "Este campo es requerido" })}
           />
           {errors.content && (
             <span className="text-red-400 text-xs">
@@ -168,18 +276,16 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
             Categoría
           </label>
           <select
-            {...register("category", { required: "Este campo es requerido" })}
             id="category"
             className="bg-gray-700 text-white p-2 rounded-md"
+            {...register("category", { required: "Este campo es requerido" })}
           >
             <option value="">Selecciona una categoría</option>
-            <option value="Diseño">Diseño</option>
-            <option value="Plantación">Plantación</option>
-            <option value="Mantenimiento">Mantenimiento</option>
-            <option value="Otros">Otros</option>
-            <option value="Plagas y enfermedades">Plagas y enfermedades</option>
-            <option value="Recursos">Recursos</option>
-            <option value="Sostenibilidad">Sostenibilidad</option>
+            {CATEGORIES.map(cat => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
           </select>
           {errors.category && (
             <span className="text-red-400 text-xs">
@@ -188,68 +294,134 @@ const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
           )}
         </div>
 
-        {/* Subida de imágenes */}
+        {/* Plantas relacionadas (IDs coma-separados) */}
         <div className="flex flex-col">
-          <label className="text-gray-400" htmlFor="images">
-            Imágenes (puedes subir varias)
+          <label className="text-gray-400" htmlFor="relatedPlants">
+            Plantas relacionadas (IDs, separadas por coma)
+          </label>
+          <input
+            type="text"
+            id="relatedPlants"
+            className="bg-gray-700 text-white p-2 rounded-md"
+            placeholder="6512ab... , 6512cd..."
+            onChange={e => {
+              const ids = e.target.value
+                .split(",")
+                .map(s => s.trim())
+                .filter(Boolean)
+              setValue("relatedPlants", ids, { shouldValidate: true })
+            }}
+            defaultValue={relatedPlantsList.join(", ")}
+          />
+          <span className="text-gray-400 text-xs">
+            Deja vacío si no aplica.
+          </span>
+        </div>
+
+        {/* Activa/Inactiva */}
+        <div className="flex items-center gap-2">
+          <input type="checkbox" id="isActive" {...register("isActive")} />
+          <label htmlFor="isActive" className="text-gray-300">
+            Publicación activa
+          </label>
+        </div>
+
+        {/* Thumbnail (single) */}
+        <div className="flex flex-col">
+          <label className="text-gray-400" htmlFor="thumbnail">
+            Thumbnail
           </label>
           <input
             type="file"
-            {...register("images")}
+            id="thumbnail"
+            accept="image/*"
+            className="text-sm text-white"
+            {...register("thumbnail")}
+          />
+          {(thumbnailPreview || existingThumbnail) && (
+            <div className="mt-2">
+              <p className="text-gray-400 text-sm mb-1">Vista previa:</p>
+              <img
+                src={thumbnailPreview || existingThumbnail}
+                alt="thumbnail"
+                className="w-32 h-32 object-cover rounded-md border border-gray-600"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Gallery (multiple) */}
+        <div className="flex flex-col">
+          <label className="text-gray-400" htmlFor="gallery">
+            Galería (puedes subir varias)
+          </label>
+          <input
+            type="file"
+            id="gallery"
             accept="image/*"
             multiple
             className="text-sm text-white"
+            {...register("gallery")}
           />
+
+          {/* Existentes (solo edición) */}
+          {mode === "edit" && existingGallery.length > 0 && (
+            <div className="mt-2">
+              <p className="text-gray-400 text-sm mb-2">Imágenes actuales:</p>
+              <div className="grid grid-cols-3 gap-2">
+                {existingGallery.map((src, idx) => (
+                  <img
+                    key={idx}
+                    src={src}
+                    alt={`gallery-${idx}`}
+                    className="w-full h-24 object-cover rounded-md border border-gray-600"
+                    loading="lazy"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Nuevas (previews) */}
+          {galleryPreview.length > 0 && (
+            <div className="mt-2">
+              <p className="text-gray-400 text-sm mb-2">Nuevas imágenes:</p>
+              <div className="grid grid-cols-3 gap-2">
+                {galleryPreview.map((src, idx) => (
+                  <img
+                    key={idx}
+                    src={src}
+                    alt={`preview-${idx}`}
+                    className="w-full h-24 object-cover rounded-md border border-gray-600"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Imágenes actuales (modo edición) */}
-        {mode === "edit" && existingImages.length > 0 && (
-          <div>
-            <p className="text-gray-400 text-sm mb-2">Imágenes actuales:</p>
-            <div className="grid grid-cols-3 gap-2">
-              {existingImages.map((img, idx) => (
-                <img
-                  key={idx}
-                  src={img}
-                  alt={`Imagen actual ${idx}`}
-                  className="w-full h-24 object-cover rounded-md border border-gray-600"
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Previsualización de nuevas imágenes */}
-        {previewImages.length > 0 && (
-          <div>
-            <p className="text-gray-400 text-sm mb-2">Nuevas imágenes:</p>
-            <div className="grid grid-cols-3 gap-2">
-              {previewImages.map((src, idx) => (
-                <img
-                  key={idx}
-                  src={src}
-                  alt={`Preview ${idx}`}
-                  className="w-full h-24 object-cover rounded-md border border-gray-600"
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Botones */}
+        {/* Acciones */}
         <div className="flex justify-end space-x-4 pt-4">
           <button
             type="button"
             onClick={onClose}
             className="bg-gray-600 text-white px-6 py-2 rounded-lg"
+            disabled={isSubmitting}
           >
             Cancelar
           </button>
           <button
             type="submit"
-            className="bg-[#10B981] text-white px-6 py-2 rounded-lg"
+            className={`px-6 py-2 rounded-lg text-white ${
+              isSubmitting ? "bg-gray-500" : "bg-[#10B981] hover:bg-[#0f9d70]"
+            }`}
+            disabled={isSubmitting}
           >
-            {mode === "edit" ? "Actualizar" : "Crear"}
+            {isSubmitting
+              ? "Guardando..."
+              : mode === "edit"
+              ? "Actualizar"
+              : "Crear"}
           </button>
         </div>
       </form>

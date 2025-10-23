@@ -1,15 +1,25 @@
 import { motion } from "framer-motion"
 import { Trash2, Plus, Edit, Search } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useBlogContext } from "@/hooks/useBlogContext"
 import BlogModalForm from "@/components/blog/BlogModalForm"
 
-const getImageUrl = thumbnail => {
-  return (
-    thumbnail ||
-    "https://fastly.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U"
-  ) // Ruta a imagen por defecto
+const getImageUrl = images => {
+  if (
+    typeof images?.thumbnail === "string" &&
+    images.thumbnail.startsWith("http")
+  ) {
+    return images.thumbnail
+  }
+  if (Array.isArray(images?.gallery) && images.gallery.length > 0) {
+    const first = images.gallery.find(
+      u => typeof u === "string" && u.startsWith("http")
+    )
+    if (first) return first
+  }
+  return "https://fastly.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U"
 }
+const DEBOUNCE_MS = 300
 
 const BlogTable = () => {
   const {
@@ -19,11 +29,28 @@ const BlogTable = () => {
     currentPage,
     totalPages,
     deleteBlogPost,
+    searchTerm,
+    setSearchTerm,
   } = useBlogContext()
 
-  const [searchTerm, setSearchTerm] = useState("")
+  const [localSearch, setLocalSearch] = useState(searchTerm)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editPostData, setEditPostData] = useState(null)
+
+  // Mantén el input sincronizado si cambia el search global (navegación, etc.)
+  useEffect(() => {
+    setLocalSearch(searchTerm)
+  }, [searchTerm])
+
+  // Debounce de búsqueda → página 1, cancelable
+  useEffect(() => {
+    const id = setTimeout(() => {
+      setSearchTerm(localSearch)
+      fetchBlogPostsByPage(1, localSearch, { cancelable: true })
+    }, DEBOUNCE_MS)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localSearch])
 
   const openCreateForm = () => {
     setEditPostData(null)
@@ -40,16 +67,13 @@ const BlogTable = () => {
       "¿Estás seguro de que deseas eliminar esta publicación?"
     )
     if (!confirmDelete) return
-
-    await deleteBlogPost(slug, currentPage, searchTerm) // 🔹 mantiene página y búsqueda
+    await deleteBlogPost(slug) // mantiene página y búsqueda; retrocede si la página quedó vacía
   }
 
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      fetchBlogPostsByPage(1, searchTerm)
-    }, 300)
-    return () => clearTimeout(delayDebounce)
-  }, [searchTerm, fetchBlogPostsByPage])
+  const goPage = page => {
+    if (page < 1 || page > totalPages || page === currentPage) return
+    fetchBlogPostsByPage(page, searchTerm, { cancelable: true })
+  }
 
   return (
     <>
@@ -64,6 +88,7 @@ const BlogTable = () => {
           <h2 className="text-xl font-semibold text-white">Publicaciones</h2>
           <div className="flex items-center gap-4 w-full sm:w-auto">
             <button
+              type="button"
               className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-[#4E6658] flex items-center gap-2"
               onClick={openCreateForm}
             >
@@ -78,8 +103,8 @@ const BlogTable = () => {
                 type="text"
                 placeholder="Buscar publicación..."
                 className="bg-gray-700 text-white placeholder-gray-400 rounded-lg pl-10 pr-4 py-2 w-full"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
+                value={localSearch}
+                onChange={e => setLocalSearch(e.target.value)}
               />
             </div>
           </div>
@@ -100,7 +125,7 @@ const BlogTable = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="text-center py-4">
+                  <td colSpan={5} className="text-center py-4">
                     Cargando...
                   </td>
                 </tr>
@@ -112,6 +137,7 @@ const BlogTable = () => {
                         src={getImageUrl(post.images?.thumbnail)}
                         alt={post.title}
                         className="w-16 h-16 rounded-md object-cover"
+                        loading="lazy"
                       />
                     </td>
                     <td className="px-6 py-4 font-medium">{post.title}</td>
@@ -121,14 +147,18 @@ const BlogTable = () => {
                     <td className="px-6 py-4">{post.category}</td>
                     <td className="px-6 py-4 text-right space-x-2">
                       <button
+                        type="button"
                         onClick={() => openEditForm(post)}
                         className="text-yellow-400 hover:text-yellow-300"
+                        aria-label={`Editar ${post.title}`}
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleDelete(post.slug)}
                         className="text-red-500 hover:text-red-400"
+                        aria-label={`Eliminar ${post.title}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -137,7 +167,7 @@ const BlogTable = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="text-center py-4">
+                  <td colSpan={5} className="text-center py-4">
                     No se encontraron publicaciones.
                   </td>
                 </tr>
@@ -149,34 +179,37 @@ const BlogTable = () => {
           {totalPages > 1 && (
             <div className="flex justify-center items-center mt-4 gap-2">
               <button
-                onClick={() =>
-                  fetchBlogPostsByPage(currentPage - 1, searchTerm)
-                }
+                type="button"
+                onClick={() => goPage(currentPage - 1)}
                 disabled={currentPage === 1}
                 className="px-3 py-1 text-sm rounded-md bg-gray-700 text-white disabled:opacity-30"
               >
                 ← Anterior
               </button>
+
               {[...Array(totalPages)].map((_, i) => {
                 const page = i + 1
+                const isActive = currentPage === page
                 return (
                   <button
+                    type="button"
                     key={page}
-                    onClick={() => fetchBlogPostsByPage(page, searchTerm)}
+                    onClick={() => goPage(page)}
                     className={`px-3 py-1 text-sm rounded-md ${
-                      currentPage === page
+                      isActive
                         ? "bg-[#10B981] text-white"
                         : "bg-gray-700 text-gray-300"
                     }`}
+                    aria-current={isActive ? "page" : undefined}
                   >
                     {page}
                   </button>
                 )
               })}
+
               <button
-                onClick={() =>
-                  fetchBlogPostsByPage(currentPage + 1, searchTerm)
-                }
+                type="button"
+                onClick={() => goPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 text-sm rounded-md bg-gray-700 text-white disabled:opacity-30"
               >

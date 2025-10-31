@@ -17,8 +17,17 @@ const getImageUrl = images => {
     )
     if (first) return first
   }
+  // LEGADO: si algún doc viejo aún trae images como array:
+  if (
+    Array.isArray(images) &&
+    images.length > 0 &&
+    typeof images[0] === "string"
+  ) {
+    return images[0]
+  }
   return "https://fastly.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U"
 }
+
 const DEBOUNCE_MS = 300
 
 const BlogTable = () => {
@@ -89,7 +98,7 @@ const BlogTable = () => {
           <div className="flex items-center gap-4 w-full sm:w-auto">
             <button
               type="button"
-              className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-[#4E6658] flex items-center gap-2"
+              className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-[#4E6658] flex items-center gap-2 cursor-pointer"
               onClick={openCreateForm}
             >
               <Plus size={18} /> Agregar
@@ -134,7 +143,7 @@ const BlogTable = () => {
                   <tr key={post._id} className="border-t border-[#5F7A6A]/30">
                     <td className="px-6 py-4">
                       <img
-                        src={getImageUrl(post.images?.thumbnail)}
+                        src={getImageUrl(post.images)}
                         alt={post.title}
                         className="w-16 h-16 rounded-md object-cover"
                         loading="lazy"
@@ -149,7 +158,7 @@ const BlogTable = () => {
                       <button
                         type="button"
                         onClick={() => openEditForm(post)}
-                        className="text-yellow-400 hover:text-yellow-300"
+                        className="text-yellow-400 hover:text-yellow-300 cursor-pointer"
                         aria-label={`Editar ${post.title}`}
                       >
                         <Edit className="w-4 h-4" />
@@ -157,7 +166,7 @@ const BlogTable = () => {
                       <button
                         type="button"
                         onClick={() => handleDelete(post.slug)}
-                        className="text-red-500 hover:text-red-400"
+                        className="text-red-500 hover:text-red-400 cursor-pointer"
                         aria-label={`Eliminar ${post.title}`}
                       >
                         <Trash2 className="w-4 h-4" />

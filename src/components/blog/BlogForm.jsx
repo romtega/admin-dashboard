@@ -1,4 +1,3 @@
-// src/components/blog/BlogForm.jsx
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { motion } from "framer-motion"
@@ -16,9 +15,12 @@ const CATEGORIES = [
   "Sostenibilidad",
 ]
 
-const BlogForm = ({ isOpen, onClose, mode = "create", initialData = {} }) => {
-  const { fetchBlogPostsByPage, currentPage, searchTerm } = useBlogContext()
-
+const BlogForm = ({ onClose, mode = "create", initialData = {} }) => {
+  const {
+    fetchBlogPostsByPage,
+    currentPage,
+    searchTerm = "",
+  } = useBlogContext()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Previews nuevas
@@ -44,16 +46,16 @@ const BlogForm = ({ isOpen, onClose, mode = "create", initialData = {} }) => {
       category: initialData?.category || "",
       relatedPlants: (initialData?.relatedPlants || []).map(String),
       isActive: initialData?.isActive ?? true,
-      thumbnail: undefined, // archivos nuevos
-      gallery: undefined, // archivos nuevos
+      thumbnail: undefined,
+      gallery: undefined,
     },
   })
 
   const watchThumb = watch("thumbnail")
   const watchGallery = watch("gallery")
-  const prevOpenRef = useRef(isOpen)
+  const prevOpenRef = useRef(true) // si lo usas dentro de modal
 
-  // Sincroniza datos al cambiar modo/initialData
+  // Cargar datos/imagenes existentes en edición
   useEffect(() => {
     const safeRelated = (initialData?.relatedPlants || []).map(String)
     reset({
@@ -79,24 +81,18 @@ const BlogForm = ({ isOpen, onClose, mode = "create", initialData = {} }) => {
       setExistingGallery([])
     }
 
-    // limpiar previews nuevas
     setThumbnailPreview(null)
     setGalleryPreview([])
   }, [mode, initialData, reset])
 
-  // Limpia al cerrar modal
+  // Limpiar al cerrar modal (si aplica)
   useEffect(() => {
-    if (prevOpenRef.current && !isOpen) {
-      reset()
-      setExistingThumbnail(null)
-      setExistingGallery([])
-      setThumbnailPreview(null)
-      setGalleryPreview([])
+    if (prevOpenRef.current === true) {
+      prevOpenRef.current = false
     }
-    prevOpenRef.current = isOpen
-  }, [isOpen, reset])
+  }, [])
 
-  // Preview: thumbnail nuevo
+  // Preview: thumbnail
   useEffect(() => {
     if (watchThumb && watchThumb.length > 0) {
       const file = watchThumb[0]
@@ -109,7 +105,7 @@ const BlogForm = ({ isOpen, onClose, mode = "create", initialData = {} }) => {
     setThumbnailPreview(null)
   }, [watchThumb])
 
-  // Preview: gallery nueva
+  // Preview: gallery
   useEffect(() => {
     if (watchGallery && watchGallery.length > 0) {
       const files = Array.from(watchGallery).filter(
@@ -140,10 +136,7 @@ const BlogForm = ({ isOpen, onClose, mode = "create", initialData = {} }) => {
       fd.append("description", form.description.trim())
       fd.append("content", form.content.trim())
       fd.append("category", form.category)
-
-      if (typeof form.isActive === "boolean") {
-        fd.append("isActive", String(form.isActive))
-      }
+      fd.append("isActive", String(!!form.isActive))
 
       if (Array.isArray(form.relatedPlants)) {
         form.relatedPlants.forEach(id => fd.append("relatedPlants", id))
@@ -170,18 +163,19 @@ const BlogForm = ({ isOpen, onClose, mode = "create", initialData = {} }) => {
           fd.append("gallery", f)
         }
       }
+      for (const [key, value] of fd.entries()) {
+        console.log(key, value)
+      }
 
       if (mode === "edit") {
         await axiosInstance.patch(`/api/v1/blog/${initialData.slug}`, fd)
         toast.success("Publicación actualizada correctamente")
-        // Editar: mantener página y búsqueda
         await fetchBlogPostsByPage(currentPage, searchTerm, {
           cancelable: false,
         })
       } else {
         await axiosInstance.post("/api/v1/blog", fd)
         toast.success("Publicación creada correctamente")
-        // Crear: volver a página 1, mantener búsqueda
         await fetchBlogPostsByPage(1, searchTerm, { cancelable: false })
       }
 
@@ -405,7 +399,7 @@ const BlogForm = ({ isOpen, onClose, mode = "create", initialData = {} }) => {
           <button
             type="button"
             onClick={onClose}
-            className="bg-gray-600 text-white px-6 py-2 rounded-lg"
+            className="bg-gray-600 text-white px-6 py-2 rounded-lg cursor-pointer"
             disabled={isSubmitting}
           >
             Cancelar
@@ -413,7 +407,9 @@ const BlogForm = ({ isOpen, onClose, mode = "create", initialData = {} }) => {
           <button
             type="submit"
             className={`px-6 py-2 rounded-lg text-white ${
-              isSubmitting ? "bg-gray-500" : "bg-[#10B981] hover:bg-[#0f9d70]"
+              isSubmitting
+                ? "bg-gray-500"
+                : "bg-[#10B981] hover:bg-[#0f9d70] cursor-pointer"
             }`}
             disabled={isSubmitting}
           >

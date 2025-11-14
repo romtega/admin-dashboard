@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom"
 import { PlantProvider } from "./context/PlantContext"
 import { BlogProvider } from "./context/BlogContext"
+import { AuthProvider } from "./context/AuthContext"
 import { Toaster } from "react-hot-toast"
 
 import OverviewPage from "@/pages/OverviewPage"
@@ -8,8 +9,9 @@ import SpeciesPage from "@/pages/SpeciesPage"
 import Sidebar from "@/components/common/Sidebar"
 import SoilStructurePage from "./pages/SoilStructurePage"
 import BlogPage from "./pages/BlogPage"
-import AdminProfilePage from "./pages/AdminProfilePage"
 import WeatherPage from "./pages/WeatherPage"
+import AdminProfilePage from "./pages/AdminProfilePage"
+import AdminLoginPage from "./pages/AdminLoginPage"
 
 function App() {
   return (
@@ -44,18 +46,21 @@ function App() {
         <div className="absolute inset-0 backdrop-blur-sm" />
       </div>
       <Sidebar />
-      <PlantProvider>
-        <BlogProvider>
-          <Routes>
-            <Route path="/" element={<OverviewPage />} />
-            <Route path="/soil-structure" element={<SoilStructurePage />} />
-            <Route path="/species" element={<SpeciesPage />} />
-            <Route path="/blog" element={<BlogPage />} />
-            <Route path="/admin" element={<AdminProfilePage />} />
-            <Route path="/weather" element={<WeatherPage />} />
-          </Routes>
-        </BlogProvider>
-      </PlantProvider>
+      <AuthProvider>
+        <PlantProvider>
+          <BlogProvider>
+            <Routes>
+              <Route path="/" element={<OverviewPage />} />
+              <Route path="/soil-structure" element={<SoilStructurePage />} />
+              <Route path="/species" element={<SpeciesPage />} />
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/weather" element={<WeatherPage />} />
+              <Route path="/admin" element={<AdminProfilePage />} />
+              <Route path="/login" element={<AdminLoginPage />} />
+            </Routes>
+          </BlogProvider>
+        </PlantProvider>
+      </AuthProvider>
     </div>
   )
 }

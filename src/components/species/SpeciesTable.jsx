@@ -2,6 +2,7 @@ import { motion } from "framer-motion"
 import { Edit, Search, Trash2, Plus, Pencil } from "lucide-react"
 import { useEffect, useState } from "react"
 import { usePlantContext } from "@/hooks/usePlantContext"
+import { useAuthContext } from "@/hooks/useAuthContext"
 import axiosInstance from "@/services/axiosConfig"
 import toast from "react-hot-toast"
 
@@ -10,6 +11,8 @@ import PlantModalForm from "@/components/species/PlantModalForm"
 const DEBOUNCE_MS = 400
 
 const SpeciesTable = () => {
+  const { user } = useAuthContext()
+  const isAdmin = user?.role === "admin"
   const { plantsData, currentPage, totalPages, fetchPlantsByPage, loading } =
     usePlantContext()
   const [searchTerm, setSearchTerm] = useState("")
@@ -75,13 +78,14 @@ const SpeciesTable = () => {
           </h2>
 
           <div className="flex items-center gap-4 w-full sm:w-auto">
-            <button
-              type="button"
-              className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-[#4E6658] flex items-center gap-2 cursor-pointer"
-              onClick={openCreateForm}
-            >
-              <Plus size={18} /> Agregar
-            </button>
+            {isAdmin && (
+              <button
+                className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-[#4E6658] flex items-center gap-2"
+                onClick={openCreateForm}
+              >
+                <Plus size={18} /> Agregar
+              </button>
+            )}
 
             <div className="relative w-full sm:w-[250px]">
               <Search
@@ -115,9 +119,11 @@ const SpeciesTable = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                   Cantidad
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">
-                  <Pencil size={18} />
-                </th>
+                {isAdmin && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                    <Pencil size={18} />
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
@@ -146,20 +152,22 @@ const SpeciesTable = () => {
                     {plant.quantity ?? "-"}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-300">
-                    <button
-                      type="button"
-                      onClick={() => openEditForm(plant)}
-                      className="text-[#F59E0B] hover:text-indigo-300 mr-2 cursor-pointer"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(plant._id)}
-                      className="text-red-400 hover:text-red-300 cursor-pointer"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    {isAdmin && (
+                      <>
+                        <button
+                          onClick={() => openEditForm(plant)}
+                          className="text-[#F59E0B] hover:text-indigo-300 mr-2"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(plant._id)}
+                          className="text-red-400 hover:text-red-300 cursor-pointer"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </>
+                    )}
                   </td>
                 </motion.tr>
               ))}

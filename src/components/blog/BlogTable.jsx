@@ -3,6 +3,7 @@ import { Trash2, Plus, Edit, Search } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useBlogContext } from "@/hooks/useBlogContext"
 import BlogModalForm from "@/components/blog/BlogModalForm"
+import { useAuthContext } from "@/hooks/useAuthContext"
 
 const getImageUrl = images => {
   if (
@@ -41,6 +42,8 @@ const BlogTable = () => {
     searchTerm,
     setSearchTerm,
   } = useBlogContext()
+  const { user } = useAuthContext()
+  const isAdmin = user?.role === "admin"
 
   const [localSearch, setLocalSearch] = useState(searchTerm)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -96,13 +99,15 @@ const BlogTable = () => {
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <h2 className="text-xl font-semibold text-white">Publicaciones</h2>
           <div className="flex items-center gap-4 w-full sm:w-auto">
-            <button
-              type="button"
-              className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-[#4E6658] flex items-center gap-2 cursor-pointer"
-              onClick={openCreateForm}
-            >
-              <Plus size={18} /> Agregar
-            </button>
+            {isAdmin && (
+              <button
+                className="bg-[#5F7A6A] text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-[#4E6658] flex items-center gap-2"
+                onClick={openCreateForm}
+              >
+                <Plus size={18} /> Agregar
+              </button>
+            )}
+
             <div className="relative w-full sm:w-[250px]">
               <Search
                 className="absolute left-3 top-2.5 text-gray-400"
@@ -128,7 +133,7 @@ const BlogTable = () => {
                 <th className="px-6 py-3">Título</th>
                 <th className="px-6 py-3">Fecha</th>
                 <th className="px-6 py-3">Categoría</th>
-                <th className="px-6 py-3 text-right">Acciones</th>
+                {isAdmin && <th className="px-6 py-3 text-right">Acciones</th>}
               </tr>
             </thead>
             <tbody>
@@ -155,22 +160,22 @@ const BlogTable = () => {
                     </td>
                     <td className="px-6 py-4">{post.category}</td>
                     <td className="px-6 py-4 text-right space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => openEditForm(post)}
-                        className="text-yellow-400 hover:text-yellow-300 cursor-pointer"
-                        aria-label={`Editar ${post.title}`}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(post.slug)}
-                        className="text-red-500 hover:text-red-400 cursor-pointer"
-                        aria-label={`Eliminar ${post.title}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => openEditForm(post)}
+                            className="text-yellow-400 hover:text-yellow-300"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(post.slug)}
+                            className="text-red-500 hover:text-red-400"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))
